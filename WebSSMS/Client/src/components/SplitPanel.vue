@@ -9,11 +9,13 @@
 
 <script lang="ts">
 import Split from "Split.js"
-import Vue from "vue";
+import Vue, { ComponentOptions } from "vue";
 
+interface C extends Vue {
+  direction: string
+}
 
-
-export default Vue.extend({
+export default {
   props: {
     direction: {
       type: String,
@@ -30,8 +32,6 @@ export default Vue.extend({
   computed: {
   },
   mounted() {
-    debugger
-    console.log(Split)
     let children = [].slice.call(this.$el.children)
     children.forEach(el => {
       el.className += "content split split-" + (this.direction == "--" ? "vertical" : "horizontal")
@@ -44,7 +44,7 @@ export default Vue.extend({
       direction: this.direction == "--" ? "vertical" : "horizontal"
     })
   }
-});
+} as ComponentOptions<C>;
 </script>
 
 <style>

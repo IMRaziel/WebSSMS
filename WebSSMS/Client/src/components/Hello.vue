@@ -1,8 +1,22 @@
 <!-- src/components/Hello.vue -->
 <template>
     <Split direction="--">
-        <div> Hello </div>
-        <div> Hello2</div>
+        <split direction="|">
+            <Editor></Editor>
+            <div>
+                <div>
+                    <v-select 
+                        :options="conn_strings" v-model="current_conn_string" 
+                        label="label" :onChange="load_tables">
+
+                    </v-select>
+                </div>
+                <tables-tree></tables-tree>
+            </div>
+        </split>
+        <div>
+            Results here
+        </div>
     </Split>
 </template>
 
@@ -11,7 +25,11 @@ import Vue from "vue";
 import { Http } from "../Utils";
 import $ from "jquery";
 import Split from "./SplitPanel.vue"
-
+import TablesTree from "./TablesTree.vue"
+import Editor from "./Editor.vue"
+import DatabasePanel from "./DatabasePanel.vue"
+import vSelect from "vue-select"
+import store from "@/Store"
 
 async function test(){
     var q = await Http.get("/api/meta")
@@ -20,30 +38,27 @@ async function test(){
 
 export default Vue.extend({
     components: {
-        Split
+        Split,
+        Editor,
+        DatabasePanel,
+        vSelect,
+        TablesTree
     },
-    props: ['name', 'initialEnthusiasm'],
     data() {
         return {
-            ajaxTestValue: "",
-            enthusiasm: this.initialEnthusiasm,
         }
     },
     methods: {
-        increment() { this.enthusiasm++; },
-        decrement() {
-            if (this.enthusiasm > 1) {
-                this.enthusiasm--;
-            }
-        },
-        async testAjax(){
-            this.ajaxTestValue = await test(); 
+        load_tables: function(val){
+            store.dispatch('loadTables', val)
         }
     },
     computed: {
-        exclamationMarks(): string {
-            return Array(this.enthusiasm + 1).join('!');
-        }
+        conn_strings: _ => store.state.connectionStrings,
+        current_conn_string: _ => store.state.persistent.currentConnectionString
+    },
+    mounted(){
+        store.dispatch('getConnectionStrings')
     }
 });
 </script>
