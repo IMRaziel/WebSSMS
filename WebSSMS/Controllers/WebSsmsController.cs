@@ -18,7 +18,8 @@ namespace WebSSMS.Controllers
 		public HttpResponseMessage Index()
 		{
 			var response = Request.CreateResponse(HttpStatusCode.Found);
-			response.Headers.Location = new Uri(Request.RequestUri, "/client/dist/index.html");
+			response.Headers.Location = new Uri("http://localhost:8080/");
+//			response.Headers.Location = new Uri(Request.RequestUri, "/client/dist/index.html");
 			return response;
 		}
 
