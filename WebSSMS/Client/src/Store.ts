@@ -1,25 +1,46 @@
 import Vuex from "vuex"
 import Vue from "vue"
 import { Http } from "@/Utils"
-
+import { SqlQueryStatus, ISqlQuery} from "@/ISqlQuery"
 Vue.use(Vuex)
 
-export default new Vuex.Store({
-  state: {
-    connectionStrings: [],
-    isLoadingTables: false,
-    tables: [],
-    persistent: {
-      currentConnectionString: <{ value: string, label: string } | null>null,
-      expandedTables: {} as { [k: string]: boolean }
+let state = {
+  connectionStrings: [] as { label: string, value: string }[],
+  isLoadingTables: false,
+  tables: [] as { name: string, fields: { name: string, type: string }[] }[],
+  persistent: {
+    currentConnectionString: <{ value: string, label: string } | null>null,
+    expandedTables: {} as { [k: string]: boolean }
+  },
+  editor: {
+    cursorPosition: {
+      column: 0,
+      lineNumber: 0
     },
-    editor: {
-      cursorPosition: {
-        column: 0,
-        lineNumber: 0
-      },
-      code: "",
-      selection: ""
+    code: "",
+    selection: ""
+  },
+  queryResults: {
+    queries: {} as { [k: string]: ISqlQuery },
+    isRunningQueries: false,
+    pre: {
+      isWaitingForQueryConfigs: false,
+      error: ""
+    }
+  } 
+}
+
+
+
+export default new Vuex.Store({
+  state,
+  getters: {
+    allQueriesFinished: state => {
+      let qs = state.queryResults.queries
+      for(var k in qs){
+        if(qs[k].QueryStatus == SqlQueryStatus.Running) return false
+      }
+      return true
     }
   },
   mutations: {
@@ -51,6 +72,19 @@ export default new Vuex.Store({
     },
     setEditorSelectedText(state, text) {
       state.editor.selection = text
+    },
+    resetQueryResults(state){
+      state.queryResults.queries = {}
+      state.queryResults.isRunningQueries = true
+      state.queryResults.pre.error = ""
+      state.queryResults.pre.isWaitingForQueryConfigs = true
+    },
+    updateQueryResult(state, queryResult: ISqlQuery){
+      state.queryResults.pre.isWaitingForQueryConfigs = false
+      Vue.set(state.queryResults.queries, queryResult.id, queryResult)
+    },
+    finalizeQueryResults(state){
+      state.queryResults.isRunningQueries = false
     }
   },
   actions: {
@@ -69,6 +103,43 @@ export default new Vuex.Store({
           .then(tables => {
             commit('setTables', tables)
             commit('setIsLoadingTables', false)
+          })
+      }
+    },
+    async cancelQuery({ commit, state, getters }, id: string) {
+      Http.get(`/api/query_runner/cancel?query_id=${id}`)
+        .then((query: ISqlQuery) => {
+          commit("updateQueryResult", query)
+          if (getters.allQueriesFinished) {
+            commit("finalizeQueryResults")
+          }
+        })
+    },
+    async runQuery({ commit, state, getters }, slow) {
+      commit("resetQueryResults")
+      slow = !!slow
+      let cs = state.persistent.currentConnectionString
+      if (cs != null) {
+        Http.post("/api/query_runner/run", {
+          conn_string_id: cs.value,
+          query_text: state.editor.selection || state.editor.code,
+          slow
+        })
+          .then((queries: ISqlQuery[]) => {
+            queries.forEach(q => {
+              commit("updateQueryResult", q)
+            });
+            queries
+            .filter(x=>x.QueryStatus==SqlQueryStatus.Running)
+            .forEach(x=> {
+              Http.get(`/api/query_runner/results?query_id=${x.id}`)
+                  .then((query: ISqlQuery) => {
+                    commit("updateQueryResult", query)
+                    if (getters.allQueriesFinished){
+                      commit("finalizeQueryResults")
+                    }
+                  })
+            })
           })
       }
     }

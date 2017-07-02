@@ -9,7 +9,8 @@ namespace WebSSMS
 {
 	public static class Utils
 	{
-		public static async Task<IEnumerable<Dictionary<string, object>>> GetDictsFromQuery(string query, string connStr) {
+		public static async Task<IEnumerable<Dictionary<string, object>>> GetDictsFromQuery(string query, string connStr)
+		{
 			var result = new List<Dictionary<string, object>>();
 			using (SqlConnection conn = new SqlConnection(connStr))
 			{
@@ -32,6 +33,24 @@ namespace WebSSMS
 			}
 			return result;
 		}
+
+
+		public static IEnumerable<Dictionary<string, object>> GetDictsFromQuery(SqlDataReader reader)
+		{
+			var result = new List<Dictionary<string, object>>();
+			while (reader.Read())
+			{
+				var val = new Dictionary<string, object>();
+				for (int i = 0; i < reader.FieldCount; i++)
+				{
+					val[reader.GetName(i)] = reader.GetValue(i);
+				}
+				result.Add(val);
+			}
+			return result;
+		}
+
+
 
 		public static T ToObject<T>(this IDictionary<string, object> source) where T : class, new()
 		{

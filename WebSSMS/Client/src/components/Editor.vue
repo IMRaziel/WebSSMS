@@ -1,6 +1,6 @@
 <template>
   <MonacoEditor language="sql" @codeChange="onCodeChange" @mounted="onMounted" 
-            :changeThrottle="250"
+            :changeThrottle="250" :options="{automaticLayout: true}"
   >
   </MonacoEditor>
 </template>

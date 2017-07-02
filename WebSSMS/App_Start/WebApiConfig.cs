@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Web.Http;
+using System.Web.Http.Cors;
 
 namespace WebSSMS
 {
@@ -18,7 +19,11 @@ namespace WebSSMS
 			var appXmlType = config.Formatters.XmlFormatter.SupportedMediaTypes.FirstOrDefault(t => t.MediaType == "application/xml");
 			config.Formatters.XmlFormatter.SupportedMediaTypes.Remove(appXmlType);
 
-			config.EnableCors();
+			var cors = new EnableCorsAttribute(
+						origins: "*",
+						headers: "*",
+						methods: "*");
+			config.EnableCors(cors);
 		}
     }
 }

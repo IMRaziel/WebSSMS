@@ -2,7 +2,13 @@
 <template>
     <Split direction="--">
         <split direction="|">
-            <Editor :onMounted="on_editor_mounted" :onCodeChange="on_code_change" ></Editor>
+            <div>
+                <div >
+                    <button @click="run_query">Run</button>
+                    <button @click="run_slow_query">Run Slowly</button>
+                </div>
+                <Editor :onMounted="on_editor_mounted" :onCodeChange="on_code_change"></Editor>
+            </div>
             <div>
                 <div>
                     <v-select 
@@ -15,7 +21,26 @@
             </div>
         </split>
         <div>
-            Results here
+            <div :key="id" v-for="(query, id) in results" class="result-container" :style="{height: result_height}">
+                <div class="result-stats">
+                    <div v-if="query.QueryStatus==0">
+                        <button @click="cancel_query(query.id)" >Cancel</button>
+                    </div>
+                    <div class="query-text">
+                         {{ query.SqlText}}
+                    </div>
+                    <div>
+                        Execution time (ms): <b v-if="query.Stats">{{ query.Stats.ExecutionTime}}</b> 
+                    </div>
+                </div>
+                <div class="result-table">
+                    <div v-if="query.QueryStatus==3">
+                        Canceled
+                    </div>
+                    <ResultsDataTable :data="query.data" v-else></ResultsDataTable>
+                </div>
+                
+            </div>
         </div>
     </Split>
 </template>
@@ -27,6 +52,7 @@ import $ from "jquery";
 import Split from "./SplitPanel.vue"
 import TablesTree from "./TablesTree.vue"
 import Editor from "./Editor.vue"
+import ResultsDataTable from "./ResultsDataTable.vue"
 import DatabasePanel from "./DatabasePanel.vue"
 import vSelect from "vue-select"
 import store from "@/Store"
@@ -43,7 +69,8 @@ export default {
         Editor,
         DatabasePanel,
         vSelect,
-        TablesTree
+        TablesTree,
+        ResultsDataTable
     },
     data() {
         return {
@@ -76,11 +103,26 @@ export default {
             var id = { major: 1, minor: 1 };
             var op = { identifier: id, range: range, text: text, forceMoveMarkers: true };
             editor.executeEdits("my-source", [op]);
+        },
+        run_query() {
+            console.log(2)
+            store.dispatch('runQuery')
+        },
+        run_slow_query() {
+            store.dispatch('runQuery', true)
+        },
+        cancel_query(id) {
+            store.dispatch('cancelQuery', id)
         }
     },
     computed: {
         conn_strings: _ => store.state.connectionStrings, 
-        current_conn_string: _ => store.state.persistent.currentConnectionString
+        current_conn_string: _ => store.state.persistent.currentConnectionString,
+        results: _ => store.state.queryResults.queries,
+        result_height: _ =>  {
+            let percents = (100 / (Object.getOwnPropertyNames(store.state.queryResults.queries).length - 1)) + "%"
+            return `calc(${percents} - 12px)`
+        }
     },
     mounted(){
         store.dispatch('getConnectionStrings')
@@ -89,7 +131,25 @@ export default {
 </script>
 
 <style>
-.greeting {
-    font-size: 20px;
+.result-stats {
+    height: 60px;
+}
+
+.result-table {
+    height: calc(100% - 60px);
+    overflow: auto
+}
+
+.result-container {
+    height: calc(100% - 18px);
+    margin: 4px;
+    border-width: 1px;
+    border: solid #000;
+}
+
+
+.query-text {
+    text-overflow: ellipsis; 
+    white-space:nowrap;
 }
 </style>
