@@ -1,5 +1,7 @@
 <template>
-  <MonacoEditor language="sql">
+  <MonacoEditor language="sql" @codeChange="onCodeChange" @mounted="onMounted" 
+            :changeThrottle="250"
+  >
   </MonacoEditor>
 </template>
 
@@ -15,6 +17,7 @@ export default Vue.extend({
   components: {
     MonacoEditor
   },
+  props: ["onCodeChange", "onMounted"],
   data() {
     return {
 

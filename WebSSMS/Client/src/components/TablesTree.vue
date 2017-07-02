@@ -15,7 +15,7 @@
     </ul>
 
     <context-menu id="context-menu" ref="ctxMenu">
-      <li> Generate "Select" Query</li>
+      <li @click="insert_select_query"> Generate "Select" Query</li>
       <li> Generate "Delete" Query</li>
       <li> Generate "Update" Query</li>
       <li> Generate "Insert" Query</li>
@@ -26,13 +26,18 @@
 </template>
 
 <script lang="ts">
-import Vue from "vue";
+import Vue, { ComponentOptions } from "vue";
 import { Http } from "../Utils";
 import $ from "jquery";
 import store from "@/Store"
 import contextMenu  from "vue-context-menu"
 
-export default Vue.extend({
+interface C extends Vue {
+  insertText: Function
+}
+
+export default {
+  props: ["insertText"],
   components: {
     contextMenu
   },
@@ -51,12 +56,15 @@ export default Vue.extend({
     show_table_menu(ev){
       if(ev.srcElement.tagName!="DIV"){ return }
       (<any>this.$refs.ctxMenu).open(ev)
+    },
+    insert_select_query(){
+      this.insertText("SELECT QUERY HERE")
     }
   },
   computed: {
     tables: () => store.state.tables
   }
-});
+} as ComponentOptions<C>
 </script>
 
 <style>

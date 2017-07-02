@@ -2,7 +2,7 @@
 <template>
     <Split direction="--">
         <split direction="|">
-            <Editor></Editor>
+            <Editor :onMounted="on_editor_mounted" :onCodeChange="on_code_change" ></Editor>
             <div>
                 <div>
                     <v-select 
@@ -11,7 +11,7 @@
 
                     </v-select>
                 </div>
-                <tables-tree></tables-tree>
+                <tables-tree :insertText="insert_text_to_editor"></tables-tree>
             </div>
         </split>
         <div>
@@ -21,7 +21,7 @@
 </template>
 
 <script lang="ts">
-import Vue from "vue";
+import Vue, { ComponentOptions } from "vue";
 import { Http } from "../Utils";
 import $ from "jquery";
 import Split from "./SplitPanel.vue"
@@ -31,12 +31,13 @@ import DatabasePanel from "./DatabasePanel.vue"
 import vSelect from "vue-select"
 import store from "@/Store"
 
-async function test(){
-    var q = await Http.get("/api/meta")
-    return q;
+declare let monaco: any;
+
+interface C extends Vue {
+    editor: any
 }
 
-export default Vue.extend({
+export default {
     components: {
         Split,
         Editor,
@@ -49,18 +50,42 @@ export default Vue.extend({
         }
     },
     methods: {
-        load_tables: function(val){
+        load_tables(val){
             store.dispatch('loadTables', val)
+        },
+        on_code_change(editor){
+            store.commit("setEditorCode", editor.getValue())
+        },
+        on_editor_mounted(editor){
+            (<any>window).ed = editor
+
+            this.editor = editor;
+            let updatePosition = _ => {
+                store.commit("setEditorCursorPosition", editor.getPosition())
+                let selection = editor.getSelection()
+                let selectedText = editor.getModel().getValueInRange(selection)
+                store.commit("setEditorSelectedText", selectedText)
+            }
+            editor.onMouseUp(updatePosition)
+            editor.onKeyUp(updatePosition)
+        },
+        insert_text_to_editor(text: string){
+            let editor = this.editor;
+            var line = editor.getPosition();
+            var range = new monaco.Range(line.lineNumber, line.column, line.lineNumber, line.column);
+            var id = { major: 1, minor: 1 };
+            var op = { identifier: id, range: range, text: text, forceMoveMarkers: true };
+            editor.executeEdits("my-source", [op]);
         }
     },
     computed: {
-        conn_strings: _ => store.state.connectionStrings,
+        conn_strings: _ => store.state.connectionStrings, 
         current_conn_string: _ => store.state.persistent.currentConnectionString
     },
     mounted(){
         store.dispatch('getConnectionStrings')
     }
-});
+} as ComponentOptions<C>
 </script>
 
 <style>
