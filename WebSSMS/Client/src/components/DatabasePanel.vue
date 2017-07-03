@@ -8,12 +8,9 @@ import Vue from "vue";
 import { Http } from "../Utils";
 import $ from "jquery";
 
-import MonacoEditor from 'vue-monaco-editor'
-
 
 export default Vue.extend({
   components: {
-    MonacoEditor
   },
   data() {
     return {

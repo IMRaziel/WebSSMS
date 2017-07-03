@@ -9,6 +9,7 @@
         "sourceMap": true,
         "strictNullChecks": true,
         "allowSyntheticDefaultImports": true,
+        "allowJs": true,
         "lib": [
             "dom",
             "es2017"
