@@ -12,7 +12,10 @@ import Split from "Split.js"
 import Vue, { ComponentOptions } from "vue";
 
 interface C extends Vue {
-  direction: string
+  direction: string,
+  activateSplit: Function,
+  $split: any,
+  isDynamic:boolean
 }
 
 export default {
@@ -20,29 +23,61 @@ export default {
     direction: {
       type: String,
       required: true,
-      validator: x => x == "|" || x == "--"
+      validator: x => x == "|" || x == "--",
+    },
+    isDynamic: {
+      type: Boolean,
+      default: false
     }
+
   },
   data() {
     return {
     }
   },
   methods: {
+    activateSplit(){
+      // debugger;
+      if (this.$children.length * 2 - 1 == this.$el.children.length) {
+        return this.$split;
+      }
+
+      let children = [].slice.call(this.$el.children) as HTMLElement[];
+      children
+          .filter(x => x.className.indexOf("gutter") != -1)
+          .forEach(x => {
+            this.$el.removeChild(x)
+          })
+      if (!this.$el.children.length) return
+ 
+      children.forEach(el => {
+        el.className += "content split split-" + (this.direction == "--" ? "vertical" : "horizontal")
+      });
+
+      console.log(children)
+      this.$split =  Split([].slice.call(this.$el.children), {
+        // sizes: [50, 50],
+        // minSize: 100 ,
+        gutterSize: 4,
+        cursor: 'col-resize',
+        direction: this.direction == "--" ? "vertical" : "horizontal"
+      })
+    }
+  },
+  destroyed(){
   },
   computed: {
   },
+  updated(){
+    if(!this.isDynamic) return;
+    // debugger;
+    if(this.$children.length * 2 - 1 != this.$el.children.length){
+      if(this.$split) this.$split.destroy()
+        this.$split = this.activateSplit()
+    }
+  },
   mounted() {
-    let children = [].slice.call(this.$el.children)
-    children.forEach(el => {
-      el.className += "content split split-" + (this.direction == "--" ? "vertical" : "horizontal")
-    });
-    Split(children, { 
-      // sizes: [50, 50],
-      // minSize: 100 ,
-      gutterSize: 10,
-      cursor: 'col-resize',
-      direction: this.direction == "--" ? "vertical" : "horizontal"
-    })
+    this.activateSplit();
   }
 } as ComponentOptions<C>;
 </script>
@@ -65,7 +100,7 @@ export default {
 }
 
 .gutter {
-  background-color: transparent;
+  background-color: lightblue;
 
   background-repeat: no-repeat;
   background-position: 50%;
@@ -73,12 +108,10 @@ export default {
 
 .gutter.gutter-horizontal {
   cursor: col-resize;
-  background-image: url('/static/img/vertical.png');
 }
 
 .gutter.gutter-vertical {
   cursor: row-resize;
-  background-image: url('/static/img/horizontal.png');
 }
 
 .split.split-horizontal, .gutter.gutter-horizontal {

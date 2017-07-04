@@ -19,29 +19,33 @@
             </div>
         </split>
         <div>
-            <div :key="'results' + i" v-for="(query, id, i) in results" class="result-container" :style="{height: result_height}">
-                        <ResultsDataTable :uid="id + '-table-'" :data="query.data"></ResultsDataTable>
+            <Split direction="--" is-dynamic>
+                <div :key="'results' + i" v-for="(query, id, i) in results" class="result-container" :style="{height: result_height}">
+                    <ResultsDataTable :uid="id + '-table-'" :data="query.data"></ResultsDataTable>
     
-            <!--<div class="result-stats">
-                        <div v-if="query.QueryStatus==0">
-                            <button @click="cancel_query(query.id)" >Cancel</button>
+                    <!--<div class="result-stats">
+                            <div v-if="query.QueryStatus==0">
+                                <button @click="cancel_query(query.id)" >Cancel</button>
+                            </div>
+                            <div class="query-text">
+                                 {{ query.SqlText}}
+                            </div>
+                            <div>
+                                Execution time (ms): <b v-if="query.Stats">{{ query.Stats.ExecutionTime}}</b> 
+                            </div>
                         </div>
-                        <div class="query-text">
-                             {{ query.SqlText}}
+                        <div class="result-table">
+                            <div v-if="query.QueryStatus==3">
+                                Canceled
+                            </div>
+        
+                            <ResultsDataTable :data="query.data" v-else></ResultsDataTable>
                         </div>
-                        <div>
-                            Execution time (ms): <b v-if="query.Stats">{{ query.Stats.ExecutionTime}}</b> 
-                        </div>
-                    </div>
-                    <div class="result-table">
-                        <div v-if="query.QueryStatus==3">
-                            Canceled
-                        </div>
+                        -->
+                </div>
     
-                        <ResultsDataTable :data="query.data" v-else></ResultsDataTable>
-                    </div>
-                    -->
-            </div>
+            </Split>
+    
         </div>
     </Split>
 </template>

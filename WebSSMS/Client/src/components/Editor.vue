@@ -1,6 +1,6 @@
 <template>
   <MonacoEditor language="sql" @codeChange="onCodeChange" @mounted="onMounted" 
-            :changeThrottle="250" :options="{automaticLayout: true}"
+            :changeThrottle="250" :options="{automaticLayout: true}" :code="test_code"
   >
   </MonacoEditor>
 </template>
@@ -20,7 +20,39 @@ export default Vue.extend({
   props: ["onCodeChange", "onMounted"],
   data() {
     return {
+      test_code: `
+        SELECT TOP (1000) [OrderID]
+                ,[CustomerID]
+                ,[EmployeeID]
+                ,[OrderDate]
+                ,[RequiredDate]
+                ,[ShippedDate]
+                ,[ShipVia]
+                ,[Freight]
+                ,[ShipName]
+                ,[ShipAddress]
+                ,[ShipCity]
+                ,[ShipRegion]
+                ,[ShipPostalCode]
+                ,[ShipCountry]
+            FROM [Northwind].[dbo].[Orders]
 
+        SELECT TOP (1000) [OrderID]
+                ,[CustomerID]
+                ,[EmployeeID]
+                ,[OrderDate]
+                ,[RequiredDate]
+                ,[ShippedDate]
+                ,[ShipVia]
+                ,[Freight]
+                ,[ShipName]
+                ,[ShipAddress]
+                ,[ShipCity]
+                ,[ShipRegion]
+                ,[ShipPostalCode]
+                ,[ShipCountry]
+            FROM [Northwind].[dbo].[Orders]
+      `
     }
   },
   methods: {

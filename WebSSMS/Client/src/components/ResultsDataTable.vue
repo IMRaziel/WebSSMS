@@ -1,9 +1,9 @@
 <template>
-  <div style="height: 100%; overflow: hidden">
+  <div style="height: 100%; overflow: hidden" @mousewheel="on_scroll">
     <div class="container" style="display: inline;">
       <div class="header" style="height: 20px"></div>
-      <div style=" overflow: hidden; display: inline-block; background-color: gray; width:calc(100% - 20px); height: calc(100% - 40px)">
-        <table v-on:scroll="on_scroll" ref="table" class="display" cellspacing="0" :style="{ 'margin-left': -10 * scrollx + 'px'}">
+      <div style=" overflow: hidden; display: inline-block; background-color: gray; width:calc(100% - 20px); height: calc(100% - 40px)" @scroll="on_scroll">
+        <table ref="table" class="display" cellspacing="0" :style="{ 'margin-left': -10 * scrollx + 'px'}">
           <thead>
             <tr class="row">
               <th :key="'col'-key" v-for="key in columns">
@@ -25,10 +25,10 @@
         </table>
       </div>
       <div style="display: inline-block; height: calc(100% - 40px); width: 20px; float: right; margin-left: 0px">
-        <input step=any type="range" orient="vertical" v-model="scrolly"></input>
+        <input step=any type="range" orient="vertical" v-model.number="scrolly"></input>
       </div>
     </div>
-    <input step=any type="range" style="width: calc(100% - 20px); height: 20px; margin-top: -4px" v-model="scrollx"></input>
+    <input step=any type="range" style="width: calc(100% - 20px); height: 20px; margin-top: -4px" v-model.number="scrollx"></input>
   </div>
 </template>
 
@@ -43,6 +43,9 @@ import 'datatables.net-fixedcolumns'
 import 'datatables.net-fixedcolumns-dt/css/fixedColumns.dataTables.css'
 import 'datatables.net-fixedheader'
 import 'datatables.net-fixedheader-dt/css/fixedHeader.dataTables.css'
+import VueScroll from "vue-scroll"
+
+Vue.use(VueScroll)
 
 interface C extends Vue {
   data: {}[]
@@ -67,6 +70,9 @@ export default {
     },
     on_scroll(e) {
       console.log(e)
+      var y = this.scrolly + Math.sign(e.wheelDeltaY) * (100 / this.rows.length)
+      y = Math.min(100, Math.max(0, y))
+      this.scrolly = y
     }
   },
   computed: {
@@ -79,9 +85,14 @@ export default {
       return all;
     },
     visible_rows() {
+      let buffer = 50;
       let all = this.rows
-      let start = all.length / 100.0 * (100 - this.scrolly)
-      var visible = all.slice(start, start + 50)
+      let start = Math.min(
+        all.length / 100.0 * (100 - this.scrolly),
+        all.length - 1
+      )
+      
+      var visible = all.slice(start, start + buffer)
       return visible
     }
   },

@@ -1,5 +1,5 @@
 <template>
-  <div style="overflow: auto; height: 100%">
+  <div style="overflow: auto; height: 100%" >
     <ul>
       <li :key="t.name" v-for="t in tables" @contextmenu.stop.prevent="show_table_menu">
         <div class="bold" @click="toggle(t.name)">
@@ -47,6 +47,9 @@ export default {
     }
   },
   methods: {
+    on_scroll(e){
+      console.log(2, e)
+    },
     is_expanded(table_name: string) {
       return store.state.persistent.expandedTables[table_name]
     },
