@@ -1,3 +1,4 @@
+import { ISqlQuery } from '@/ISqlQuery';
 export enum SqlQueryStatus {
   Running,
   Finished,
@@ -15,4 +16,5 @@ export interface ISqlQuery {
 		Stats: {[k: string]: any}
 		data: {}[];
 		Error: string
+		NextQuery: ISqlQuery
 }

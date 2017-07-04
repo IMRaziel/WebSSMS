@@ -26,6 +26,7 @@ namespace WebSSMS
 		public IDictionary Stats;
 		public IEnumerable<Dictionary<string, object>> data;
 		public string Error;
+		public SqlQuery NextQuery;
 
 		[ScriptIgnore, JsonIgnore]
 		public SqlCommand command;

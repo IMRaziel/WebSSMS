@@ -101,12 +101,11 @@ namespace WebSSMS.Controllers
 
 		[Route("api/query_runner/run")]
 		[HttpPost]
-		public async Task<SqlQuery[]> RunQuery([FromBody] RunQueryParams param)
+		public async Task<SqlQuery> RunQuery([FromBody] RunQueryParams param)
 		{
 			var cs = ConnectionStringsProvider.GetById(param.conn_string_id);
 			var query = await SqlQueryRunner.RunQuery(cs, param.query_text, param.slow);
-			var query2 = await SqlQueryRunner.RunQuery(cs, param.query_text);
-			return new[] { query, query2 };
+			return query;
 		}
 
 		[Route("api/query_runner/results")]

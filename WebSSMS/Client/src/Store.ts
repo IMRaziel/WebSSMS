@@ -116,6 +116,21 @@ export default new Vuex.Store({
         })
     },
     async runQuery({ commit, state, getters }, slow) {
+      function getResults(id){
+        Http.get(`/api/query_runner/results?query_id=${id}`)
+          .then((q: ISqlQuery) => {
+            commit("updateQueryResult", q)
+            if (getters.allQueriesFinished) {
+              commit("finalizeQueryResults")
+            }
+            if (q.NextQuery){
+              commit("updateQueryResult", q.NextQuery)
+              getResults(q.NextQuery.id)
+            }
+          })
+      }
+
+
       commit("resetQueryResults")
       slow = !!slow
       let cs = state.persistent.currentConnectionString
@@ -125,21 +140,11 @@ export default new Vuex.Store({
           query_text: state.editor.selection || state.editor.code,
           slow
         })
-          .then((queries: ISqlQuery[]) => {
-            queries.forEach(q => {
-              commit("updateQueryResult", q)
-            });
-            queries
-            .filter(x=>x.QueryStatus==SqlQueryStatus.Running)
-            .forEach(x=> {
-              Http.get(`/api/query_runner/results?query_id=${x.id}`)
-                  .then((query: ISqlQuery) => {
-                    commit("updateQueryResult", query)
-                    if (getters.allQueriesFinished){
-                      commit("finalizeQueryResults")
-                    }
-                  })
-            })
+          .then((query: ISqlQuery) => {
+            commit("updateQueryResult", query)
+            if (query.QueryStatus == SqlQueryStatus.Running){
+              getResults(query.id)
+            }
           })
       }
     }
