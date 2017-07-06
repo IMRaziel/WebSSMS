@@ -20,39 +20,7 @@ export default Vue.extend({
   props: ["onCodeChange", "onMounted"],
   data() {
     return {
-      test_code: `
-        SELECT TOP (1000) [OrderID]
-                ,[CustomerID]
-                ,[EmployeeID]
-                ,[OrderDate]
-                ,[RequiredDate]
-                ,[ShippedDate]
-                ,[ShipVia]
-                ,[Freight]
-                ,[ShipName]
-                ,[ShipAddress]
-                ,[ShipCity]
-                ,[ShipRegion]
-                ,[ShipPostalCode]
-                ,[ShipCountry]
-            FROM [Northwind].[dbo].[Orders]
-
-        SELECT TOP (1000) [OrderID]
-                ,[CustomerID]
-                ,[EmployeeID]
-                ,[OrderDate]
-                ,[RequiredDate]
-                ,[ShippedDate]
-                ,[ShipVia]
-                ,[Freight]
-                ,[ShipName]
-                ,[ShipAddress]
-                ,[ShipCity]
-                ,[ShipRegion]
-                ,[ShipPostalCode]
-                ,[ShipCountry]
-            FROM [Northwind].[dbo].[Orders]
-      `
+      test_code: this.$store.state.editor.code
     }
   },
   methods: {

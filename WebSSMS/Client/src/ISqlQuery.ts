@@ -18,3 +18,11 @@ export interface ISqlQuery {
 		Error: string
 		NextQuery: ISqlQuery
 }
+
+export interface IRunQueryResults
+{
+		error: string
+		// todo: typing
+		parseErrors: any
+		queries: ISqlQuery[]
+}

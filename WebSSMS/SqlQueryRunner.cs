@@ -15,50 +15,12 @@ namespace WebSSMS
 	{
 		private static Dictionary<Guid, SqlQuery> Queries = new Dictionary<Guid, SqlQuery>();
 
-		public static void s(string t)
+		public class RunQueryResults
 		{
-			TSql120Parser parser = new TSql120Parser(false);
-			IList<ParseError> errors;
-			using (StringReader sr = new StringReader(t))
-			using (StringReader sr2 = new StringReader(t))
-			{
-
-				// TODO: first parse batches, then parse statements list for each batch
-				TSqlFragment fragment = parser.ParseStatementList(sr, out errors);
-				var f2 = parser.Parse(sr2, out errors);
-				IEnumerable<string> batches = GetBatches(fragment);
-				foreach (var batch in batches)
-				{
-					Console.WriteLine(batch);
-				}
-			}
+			public string error;
+			public ParseError[] parseErrors;
+			public SqlQuery[] queries;
 		}
-
-		private static IEnumerable<string> GetBatches(TSqlFragment fragment)
-		{
-			Sql120ScriptGenerator sg = new Sql120ScriptGenerator();
-			TSqlScript script = fragment as TSqlScript;
-			if (script != null)
-			{
-				foreach (var batch in script.Batches)
-				{
-					yield return ScriptFragment(sg, batch);
-				}
-			}
-			else
-			{
-				// TSqlFragment is a TSqlBatch or a TSqlStatement
-				yield return ScriptFragment(sg, fragment);
-			}
-		}
-
-		private static string ScriptFragment(SqlScriptGenerator sg, TSqlFragment fragment)
-		{
-			string resultString;
-			sg.GenerateScript(fragment, out resultString);
-			return resultString;
-		}
-	
 
 		public static async Task<SqlQuery> GetQueryResult(Guid queryId)
 		{
@@ -93,104 +55,95 @@ namespace WebSSMS
 			return query;
 		}
 
-		public static async Task<SqlQuery> RunQuery(ConnectionStringsProvider.ConnectionString connString, string queryText, bool slow = false)
+		public static async Task<RunQueryResults> RunQuery(ConnectionStringsProvider.ConnectionString connString, string queryText, bool slow = false)
 		{
-
-			string connectionString, scriptText;
+			var result = new RunQueryResults();
 			SqlConnection sqlConnection = new SqlConnection(connString.value);
-			ServerConnection svrConnection = new ServerConnection(sqlConnection);
-			Server server = new Server(svrConnection);
 
-			s(queryText);
-
-			// server.ConnectionContext.MultipleActiveResultSets = true;
-			server.ConnectionContext.SqlExecutionModes = SqlExecutionModes.ExecuteAndCaptureSql;
-			var res = server.ConnectionContext.ExecuteWithResults(queryText);
-//			var a1 = res.Tables[0].Rows[0];
-//			var a2 = res.Tables[1].Rows[0];
-
-			var query = new SqlQuery
+			var splitResult = SqlSplitter.Split(queryText);
+			if(splitResult.errors.Count()!=0)
 			{
-				id = Guid.NewGuid(),
-				ConnectionId = connString.id,
-				ConnectionName = connString.label,
-				QueryStatus = SqlQuery.Status.Running,
-				SqlText = queryText,
-				data = new List<Dictionary<string, object>>()
-			};
-			SqlConnection conn = null;
-			SqlCommand cmd = null;
+				result.parseErrors = splitResult.errors;
+				result.error = "Syntax error in SQL query";
+				return result;
+			}
 
+			SqlConnection conn = null;
 			try
 			{
 				conn = new SqlConnection(connString.value);
 				conn.StatisticsEnabled = true;
-				query.connection = conn;
-
-				cmd = new SqlCommand(queryText, conn);
-				query.command = cmd;
-
 				conn.Open();
-				SqlDataReader reader = await cmd.ExecuteReaderAsync();
 
+				result.queries = splitResult.queries.Select(x => {
+					var id = Guid.NewGuid();
+					var query = new SqlQuery
+					{
+						id = id,
+						ConnectionId = connString.id,
+						ConnectionName = connString.label,
+						QueryStatus = SqlQuery.Status.Running,
+						SqlText = x,
+						connection = conn,
+						command = new SqlCommand(x, conn),
+						data = new List<Dictionary<string, object>>()
+					};
+					Queries[id] = query;
+					return query;
+				}).ToArray();
+
+
+				var i = 0;
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 				// should run in background. no need for await here
-				var currentQuery = query;
 				Task.Run(async () =>
 				{
-					
-					// for testing of query cancelation
 					try
 					{
-						while(true)
+						for (; i < result.queries.Count(); i++)
 						{
-							if (slow)
+							var query = result.queries[i];
+							SqlDataReader reader = null;
+							try
 							{
-								await Task.Delay(10000);
+								// for testing of query cancelation
+								if (slow)
+								{
+									await Task.Delay(10000);
+								}
+								reader = await query.command.ExecuteReaderAsync();
+								query.data = Utils.GetDictsFromQuery(reader);
+								query.Stats = conn.RetrieveStatistics();
+								conn.ResetStatistics();
+								query.QueryStatus = SqlQuery.Status.Finished;
 							}
-							currentQuery.data = Utils.GetDictsFromQuery(reader);
-							currentQuery.Stats = conn.RetrieveStatistics();
-							currentQuery.QueryStatus = SqlQuery.Status.Finished;
-
-							if (!await reader.NextResultAsync()) break;
-
-							currentQuery.NextQuery = new SqlQuery
+							catch (Exception e)
 							{
-								ConnectionId = connString.id,
-								ConnectionName = connString.label,
-								QueryStatus = SqlQuery.Status.Running,
-								SqlText = queryText,
-								data = new List<Dictionary<string, object>>(),
-								id = Guid.NewGuid()
-							};
-							currentQuery = currentQuery.NextQuery;
-							Queries[currentQuery.id] = currentQuery;
-						};
+								query.QueryStatus = SqlQuery.Status.Error;
+								query.Error = e.Message;
+							}
+							finally
+							{
+								reader?.Close();
+							}
+							var qq = 2;
+						}
 					}
-					catch (Exception e)
-					{
-						query.QueryStatus = SqlQuery.Status.Error;
-						query.Error = e.Message;
-					} finally
+					finally
 					{
 						conn.Close();
 					}
+					var q = 2;
 				});
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-				Queries[query.id] = query;
-
 			}
 			catch (Exception e)
 			{
-				query.QueryStatus = SqlQuery.Status.Error;
-				query.Error = e.Message;
-
+				result.error = e.Message;
 				conn?.Close();
 			}
 
-			return query;
+			return result;
 		}
-
-
 	}
 }

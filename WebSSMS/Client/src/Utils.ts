@@ -35,4 +35,21 @@ export function debounce(func, wait, immediate?: boolean) {
     timeout = setTimeout(later, wait);
     if (callNow) func.apply(context, args);
   };
-};
+}
+
+export function throttle(callback, wait, context = this) {
+  let timeout: number | null = null
+  let callbackArgs: IArguments | null = null
+
+  const later = () => {
+    callback.apply(context, callbackArgs)
+    timeout = null
+  }
+
+  return function () {
+    if (!timeout) {
+      callbackArgs = arguments
+      timeout = setTimeout(later, wait)
+    }
+  }
+}

@@ -1,50 +1,60 @@
-﻿/*using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using Microsoft.SqlServer.TransactSql.ScriptDom;
+using System.IO;
 using System.Linq;
-using System.Web;
 
 namespace WebSSMS
 {
 	public static class SqlSplitter
 	{
-		public static string[] Split() {
-			string str = @"CREATE TABLE [Settings] (
-					[Id] [int] IDENTITY(1,1) NOT NULL,
-					[Name] [nvarchar](100) NOT NULL,
-					[Value] [nvarchar](100) NULL
-				)
+		public class SplitResult
+		{
+			public ParseError[] errors = new ParseError[0];
+			public string[] queries = new string[0];
+		}
 
-				ALTER TABLE [Settings] ADD
-					CONSTRAINT [PK_Settings] PRIMARY KEY ([Id])
+		public static SplitResult Split(string t)
+		{
+			var result = new SplitResult();
 
-				INSERT INTO [Settings] ([Name, [Value]) VALUES ('SiteUrl', 'http://localhost')
-				INSERT INTO [Settings] ([Name], [Value]) VALUES ('AssetsUrl', '/Assets')";
+			var parser = new TSql120Parser(false);
+			var sg = new Sql120ScriptGenerator();
 
-			// Replace all [new line] to [space]
-			while (str.Contains(Environment.NewLine))
+			using (StringReader sr = new StringReader(t))
 			{
-				str = str.Replace(Environment.NewLine, " ");
+				IList<ParseError> err = new List<ParseError>();
+				var root = parser.Parse(sr, out err);
+				if (err.Count() != 0)
+				{
+					result.errors = err.ToArray();
+					result.queries = new string[0];
+				}
+				result.queries = GetStatements(root).ToArray();
+
 			}
+			return result;
+		}
 
-			// Array of all sql commands using in query
-			string[] sqlCommands = { "CREATE TABLE", "ALTER TABLE", "INSERT INTO" };
-
-			// Insert before each sql expression new line
-			foreach (string sqlCommand in sqlCommands)
+		private static IEnumerable<string> GetStatements(TSqlFragment fragment)
+		{
+			Sql120ScriptGenerator sg = new Sql120ScriptGenerator();
+			TSqlScript script = fragment as TSqlScript;
+			if (script != null)
 			{
-				str = str.Replace(sqlCommand, Environment.NewLine + sqlCommand);
+				return script.Batches.SelectMany(x => x.Statements, (_, x) => ScriptFragment(sg, x));
 			}
-
-			// Split big sql string to separate commands, and remove empty strings
-			string[] arr = str.Split(new string[] { Environment.NewLine },
-						StringSplitOptions.None);
-			arr = arr.Where(cmd => !String.IsNullOrEmpty(cmd)).ToArray();
-
-			// Execute sql commands
-			foreach (string command in arr)
+			else
 			{
-				Console.WriteLine(">> {0}{1}", command, Environment.NewLine);
+				// TSqlFragment is a TSqlBatch or a TSqlStatement
+				return new[] { ScriptFragment(sg, fragment) };
 			}
 		}
+
+		private static string ScriptFragment(SqlScriptGenerator sg, TSqlFragment fragment)
+		{
+			string resultString;
+			sg.GenerateScript(fragment, out resultString);
+			return resultString;
+		}
 	}
-}*/
+}

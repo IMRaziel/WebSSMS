@@ -1,8 +1,7 @@
 <template>
-  <div style="height: 100%; overflow: hidden" @mousewheel="on_scroll">
+  <div style="height: 100%; overflow: hidden" @wheel="on_scroll">
     <div class="container" style="display: inline;">
-      <div class="header" style="height: 20px"></div>
-      <div style=" overflow: hidden; display: inline-block; background-color: gray; width:calc(100% - 20px); height: calc(100% - 40px)" @scroll="on_scroll">
+      <div style=" overflow: hidden; display: inline-block; background-color: gray; width:calc(100% - 20px); height: calc(100% - 60px)" @scroll="on_scroll">
         <table ref="table" class="display" cellspacing="0" :style="{ 'margin-left': -10 * scrollx + 'px'}">
           <thead>
             <tr class="row">
@@ -24,26 +23,34 @@
           </tbody>
         </table>
       </div>
-      <div style="display: inline-block; height: calc(100% - 40px); width: 20px; float: right; margin-left: 0px">
-        <input step=any type="range" orient="vertical" v-model.number="scrolly"></input>
+      <div style="display: inline-block; height: calc(100% - 60px); width: 20px; float: right; margin-left: 0px">
+        <vue-slider ref="qwe"
+              height="100%" 
+              :width="10"
+               direction="vertical" 
+               show
+               tooltip="never"
+              :piecewise="false"
+              :process-style="{background: 'transparent'}"
+              :style="{ 'display': 'inline-block', 'marginLeft': '-6px' }" 
+              v-model.number="scrolly"  ></vue-slider>
       </div>
     </div>
-    <input step=any type="range" style="width: calc(100% - 20px); height: 20px; margin-top: -4px" v-model.number="scrollx"></input>
+    <vue-slider tooltip="never" step=any type="range" style="width: calc(100% - 20px); height: 20px; margin-top: -4px" v-model.number="scrollx" data-rangeslider></vue-slider>
   </div>
 </template>
 
 <script lang="ts">
+declare let require: any
 import Vue, { ComponentOptions } from "vue";
 import { Http } from "../Utils";
 import $ from "jquery";
 // import  "jquery.datatables"
-import 'datatables.net'
-import 'datatables.net-dt/css/jquery.dataTables.css'
-import 'datatables.net-fixedcolumns'
-import 'datatables.net-fixedcolumns-dt/css/fixedColumns.dataTables.css'
-import 'datatables.net-fixedheader'
-import 'datatables.net-fixedheader-dt/css/fixedHeader.dataTables.css'
+
 import VueScroll from "vue-scroll"
+import {throttle} from "@/Utils"
+
+import vueSlider from 'vue-slider-component';
 
 Vue.use(VueScroll)
 
@@ -52,11 +59,15 @@ interface C extends Vue {
   rows: {}[],
   columns: string[],
   scrolly: number
+  $scrollYDebounced: Function
+  $scrolly: number
+  $scrollFixTask: number
 }
 
 export default {
   props: ["uid", "data"],
   components: {
+    vueSlider
   },
   data() {
     return {
@@ -69,10 +80,26 @@ export default {
       return Math.random()
     },
     on_scroll(e) {
-      console.log(e)
-      var y = this.scrolly + Math.sign(e.wheelDeltaY) * (100 / this.rows.length)
+      if(!this.$scrollYDebounced){
+        this.$scrollYDebounced = () => {
+          console.log(this.scrolly, this.$scrolly)
+          this.scrolly = this.$scrolly;
+          (<any>this.$refs["qwe"]).setValue(this.$scrolly);
+        }
+        this.$scrollYDebounced = throttle(this.$scrollYDebounced, 16);
+        this.$scrolly = this.scrolly
+      }
+      if(!e.deltaY) return;
+      let s = e.deltaY
+      let dy = s > 50 ? s : s * 25
+      console.log(e,s)
+      
+      var y = this.$scrolly - dy / this.rows.length
       y = Math.min(100, Math.max(0, y))
-      this.scrolly = y
+      
+      this.$scrolly = y
+
+      this.$scrollYDebounced()
     }
   },
   computed: {
@@ -118,12 +145,20 @@ export default {
       }
     }
   },
-  mounted() {
+  mounted(){
+    this.$scrollFixTask = setInterval(() => {
+      (<any>this.$refs["qwe"]).refresh();
+    }, 250);
+  },
+  destroyed(){
+    clearInterval(this.$scrollFixTask)
+  },
+  updated() {
   }
 } as ComponentOptions<C>
 </script>
 
-<style scoped>
+<style >
 /*table {
   height: 100%
 }*/
@@ -156,5 +191,9 @@ export default {
 
 tbody tr:nth-child(odd) {
   background-color: #ccc;
+}
+
+.vue-slider-vertical .vue-slider {
+  width: 20px;
 }
 </style>

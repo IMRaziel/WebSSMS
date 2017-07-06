@@ -4,8 +4,8 @@
         <split direction="|">
             <div>
                 <div>
-                    <button @click="run_query">Run</button>
-                    <button @click="run_slow_query">Run Slowly</button>
+                    <button @click="run_query" :disabled="is_waiting_for_query">{{ is_running ? 'Cancel' : 'Run'}}</button>
+                    <button @click="run_slow_query" :disabled="is_waiting_for_query">{{ is_running ? 'Cancel' : 'Run Slowly'}}</button>
                 </div>
                 <Editor :onMounted="on_editor_mounted" :onCodeChange="on_code_change"></Editor>
             </div>
@@ -20,28 +20,23 @@
         </split>
         <div>
             <Split direction="--" is-dynamic>
-                <div :key="'results' + i" v-for="(query, id, i) in results" class="result-container" :style="{height: result_height}">
-                    <ResultsDataTable :uid="id + '-table-'" :data="query.data"></ResultsDataTable>
-    
-                    <!--<div class="result-stats">
-                            <div v-if="query.QueryStatus==0">
-                                <button @click="cancel_query(query.id)" >Cancel</button>
-                            </div>
-                            <div class="query-text">
-                                 {{ query.SqlText}}
-                            </div>
-                            <div>
-                                Execution time (ms): <b v-if="query.Stats">{{ query.Stats.ExecutionTime}}</b> 
-                            </div>
+                <span v-if="query_start_error">
+                    {{ query_start_error }}
+                </span>
+                <div v-else :key="'results' + i" v-for="(query, id, i) in results" class="result-container" :style="{height: result_height}">
+                    <div class="result-stats">
+                        <div class="query-text">
+                            {{ query.SqlText}}
                         </div>
-                        <div class="result-table">
-                            <div v-if="query.QueryStatus==3">
-                                Canceled
-                            </div>
-        
-                            <ResultsDataTable :data="query.data" v-else></ResultsDataTable>
+                        <div>
+                            Execution time (ms):
+                            <b v-if="query.Stats">{{ query.Stats.ExecutionTime}}</b>
                         </div>
-                        -->
+                    </div>
+                    <div v-if="query.Error"> {{ query.Error }}  </div>
+                    <div v-if="is_waiting(query)"> Waiting  </div>
+                    <div v-if="is_cancelled(query)"> Cancelled  </div>
+                    <ResultsDataTable v-if="query.data && query.data.length" :uid="id + '-table-'" :data="query.data"></ResultsDataTable>
                 </div>
     
             </Split>
@@ -61,16 +56,14 @@ import ResultsDataTable from "./ResultsDataTable.vue"
 import DatabasePanel from "./DatabasePanel.vue"
 import vSelect from "vue-select"
 import store from "@/Store"
-import { TSParser } from 'TSParser'
-
-let w = <any>window;
-w.sqlParser = TSParser
-
+import { SqlQueryStatus} from "@/ISqlQuery"
 
 declare let monaco: any;
 
 interface C extends Vue {
     editor: any
+    is_running:boolean
+    run_query: Function
 }
 
 export default {
@@ -88,6 +81,8 @@ export default {
         }
     },
     methods: {
+        is_cancelled: query => query.QueryStatus == SqlQueryStatus.Cancelled,
+        is_waiting: query => query.QueryStatus == SqlQueryStatus.Running,
         load_tables(val) {
             store.dispatch('loadTables', val)
         },
@@ -115,12 +110,15 @@ export default {
             var op = { identifier: id, range: range, text: text, forceMoveMarkers: true };
             editor.executeEdits("my-source", [op]);
         },
-        run_query() {
-            console.log(2)
-            store.dispatch('runQuery')
+        run_query(e, slow:boolean) {
+            if(this.is_running) {
+                store.dispatch('cancelQuery')
+            }   else {
+                store.dispatch('runQuery', slow)
+            }
         },
-        run_slow_query() {
-            store.dispatch('runQuery', true)
+        run_slow_query(e) {
+            this.run_query(e, true)
         },
         cancel_query(id) {
             store.dispatch('cancelQuery', id)
@@ -128,11 +126,16 @@ export default {
     },
     computed: {
         conn_strings: _ => store.state.connectionStrings,
+        is_running: _ => store.state.queryResults.isRunningQueries,
         current_conn_string: _ => store.state.persistent.currentConnectionString,
+        is_waiting_for_query: _ => store.state.queryResults.pre.isWaitingForQuery,
         results: _ => store.state.queryResults.queries,
         result_height: _ => {
             let percents = (100 / (Object.getOwnPropertyNames(store.state.queryResults.queries).length - 1)) + "%"
             return `calc(${percents} - 12px)`
+        },
+        query_start_error(){
+            return this.$store.state.queryResults.pre.error;
         }
     },
     mounted() {
@@ -141,15 +144,11 @@ export default {
 } as ComponentOptions<C>
 </script>
 
-<style>
+<style scoped>
 .result-stats {
-    height: 20px;
+    height: 40px;
 }
 
-.result-table {
-    height: calc(100% - 20px);
-    overflow: auto
-}
 
 .result-container {
     height: calc(100% - 18px);
@@ -162,16 +161,5 @@ export default {
 .query-text {
     text-overflow: ellipsis;
     white-space: nowrap;
-}
-
-
-input[type=range][orient=vertical] {
-    writing-mode: vertical-rl;
-    /*direction: rtl;*/
-    /* IE */
-    -webkit-appearance: slider-vertical;
-    /* WebKit */
-    width: 100%;
-    height: 100%;
 }
 </style>
