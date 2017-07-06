@@ -1,15 +1,26 @@
 import Vuex from "vuex"
 import Vue from "vue"
 import { Http } from "@/Utils"
+import ISelectModel from "@/ISelectModel"
 import { SqlQueryStatus, ISqlQuery, IRunQueryResults} from "@/ISqlQuery"
+import { createModule, ADD_TOAST_MESSAGE  } from 'vuex-toast'
+
 Vue.use(Vuex)
 
 let state = {
-  connectionStrings: [] as { label: string, value: string }[],
+  save_load : {
+    currentName: "",
+    currentId: "",
+    isSaving: false,
+    isLoading: false,
+    selectorVisible: false,
+    queriesList: [] as ISelectModel[]
+  },
+  connectionStrings: [] as ISelectModel[],
   isLoadingTables: false,
   tables: [] as { name: string, fields: { name: string, type: string }[] }[],
   persistent: {
-    currentConnectionString: <{ value: string, label: string } | null> null,
+    currentConnectionString: <ISelectModel | null> null,
     expandedTables: {} as { [k: string]: boolean }
   },
   editor: {
@@ -54,6 +65,7 @@ update [Northwind].[dbo].[Orders] set shipname = '2' where orderid = 10248
             FROM [Northwind].[dbo].[Orders]
       
     `,
+    _loadedCode: "",
     selection: ""
   },
   queryResults: {
@@ -67,8 +79,15 @@ update [Northwind].[dbo].[Orders] set shipname = '2' where orderid = 10248
 }
 
 
+declare let process: any;
 
 export default new Vuex.Store({
+  strict: process.env.NODE_ENV !== 'production',
+  modules: {
+    toast: createModule({
+      dismissInterval: 8000
+    }),
+  },
   state,
   getters: {
     allQueriesFinished: state => {
@@ -80,20 +99,20 @@ export default new Vuex.Store({
     }
   },
   mutations: {
+    // connections list
     setCurrentConnString(state, connString) {
       state.persistent.currentConnectionString = connString
     },
     setConnStrings(state, conn_strings) {
       state.connectionStrings = conn_strings
     },
+
+    // tables list
     setTables(state, tables) {
       Vue.set(state, "tables", tables)
     },
     setIsLoadingTables(state, val) {
       state.isLoadingTables = val;
-    },
-    setEditorCode(state, val) {
-      state.editor.code = val;
     },
     toggleTableExpanded(state, name) {
       let expandedTables = state.persistent.expandedTables
@@ -103,12 +122,19 @@ export default new Vuex.Store({
         Vue.set(expandedTables, name, true)
       }
     },
+
+    // code editor
+    setEditorCode(state, val) {
+      state.editor.code = val;
+    },
     setEditorCursorPosition(state, pos) {
       Vue.set(state.editor, "cursorPosition", pos)
     },
     setEditorSelectedText(state, text) {
       state.editor.selection = text
     },
+
+    // running queries
     startQuery(state){
       state.queryResults.queries = {}
       state.queryResults.isRunningQueries = true
@@ -127,7 +153,36 @@ export default new Vuex.Store({
       if(queryResult && queryResult.error){
         state.queryResults.pre.error = queryResult.error
       }
+    },
+
+    // save/load
+    updateQueryName(state, name: string) {
+      state.save_load.currentName = name
+    },
+    startQueryListLoad(state) {
+      state.save_load.queriesList = []
+      state.save_load.isLoading = true
+      state.save_load.selectorVisible = true
+    },
+    endQueryListLoad(state, queries){
+        state.save_load.isLoading = false
+        if (!queries.length){
+          state.save_load.selectorVisible = false
+        }
+        state.save_load.queriesList = queries
+    },
+    startQuerySave(state){
+      state.save_load.isSaving = true
+    },
+    setCurrentQuery(state, q: ISelectModel){
+      state.save_load.currentId = q.id
+      state.save_load.currentName = q.label
+      state.editor._loadedCode = q.value
+    },
+    endQuerySave(){
+      state.save_load.isSaving = false
     }
+
   },
   actions: {
     getConnectionStrings({ commit }) {
@@ -148,7 +203,7 @@ export default new Vuex.Store({
           })
       }
     },
-    async cancelQuery({ commit, state, getters }) {
+    cancelQuery({ commit, state, getters }) {
       Object.keys(state.queryResults.queries)
       .filter(x => state.queryResults.queries[x].QueryStatus == SqlQueryStatus.Running)
       .forEach(id => {
@@ -161,7 +216,7 @@ export default new Vuex.Store({
           })
       })
     },
-    async runQuery({ commit, state, getters }, slow) {
+    runQuery({ commit, state, getters }, slow) {
       function getResults(id){
         Http.get(`/api/query_runner/results?query_id=${id}`)
           .then((q: ISqlQuery) => {
@@ -171,8 +226,6 @@ export default new Vuex.Store({
             }
           })
       }
-
-
       commit("startQuery")
       slow = !!slow
       let cs = state.persistent.currentConnectionString
@@ -196,6 +249,42 @@ export default new Vuex.Store({
             })
           })
       }
-    }
+    },
+    loadQueriesList({commit, state, dispatch}){
+      commit("startQueryListLoad")
+      return Http.get(`/api/query_list`)
+        .then((q: ISelectModel[]) => {
+          if(!q.length){
+            dispatch(ADD_TOAST_MESSAGE, { text: "No saved queries found", type: "info" })
+          }
+          commit("endQueryListLoad", q)
+        })
+    },
+    loadQuery({ commit, state, dispatch }, q: ISelectModel) {
+      commit("setCurrentQuery", q)
+      commit("")
+    },
+    saveNewQuery({commit, state, dispatch}){
+      state.save_load.currentId = ""
+      dispatch("saveQuery")
+    },
+    saveQuery({commit, state, dispatch}){
+      if (!state.save_load.currentName){
+        dispatch(ADD_TOAST_MESSAGE, { text: "Please enter name before saving", type: "info" })
+        return
+      }
+      
+      commit("startQuerySave")
+      Http.post("/api/query_list/save", {
+                value: state.editor.code,
+                label: state.save_load.currentName,
+                id: state.save_load.currentId
+              })
+              .then((q) => {
+                commit("setCurrentQuery", q)
+                commit("endQuerySave")
+                dispatch(ADD_TOAST_MESSAGE, { text: "Saved", type: "info" })
+              });
+    },
   }
-})
+}) 

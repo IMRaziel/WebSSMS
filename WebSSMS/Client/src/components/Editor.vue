@@ -1,19 +1,21 @@
 <template>
-  <MonacoEditor language="sql" @codeChange="onCodeChange" @mounted="onMounted" 
+  <MonacoEditor ref="editor" language="sql" @codeChange="onCodeChange" @mounted="onMounted" 
             :changeThrottle="250" :options="{automaticLayout: true}" :code="test_code"
   >
   </MonacoEditor>
 </template>
 
 <script lang="ts">
-import Vue from "vue";
+import Vue, { ComponentOptions } from "vue";
 import { Http } from "../Utils";
 import $ from "jquery";
 
 import MonacoEditor from './Monaco/Monaco.vue'
+interface C extends Vue {
+  editor: any
+}
 
-
-export default Vue.extend({
+export default{
   components: {
     MonacoEditor
   },
@@ -27,8 +29,16 @@ export default Vue.extend({
 
   },
   computed: {
+  },
+  mounted(){
+    let self = this;
+    this.$store.watch(state => state.editor._loadedCode, (newVal, oldVal) => {
+      debugger
+      let editor: any = self.$refs["editor"]
+      editor.editor.setValue(newVal)
+    })
   }
-});
+} as ComponentOptions<C>  
 </script>
 
 <style>

@@ -35,6 +35,45 @@ namespace WebSSMS.Controllers
 			}).ToArray();
 		}
 
+		public class SelectFieldModel
+		{
+			public string value { get; set; }
+			public string label { get; set; }
+			public Guid id { get; set; }
+		}
+
+		private static List<SelectFieldModel> savedQueries = new List<SelectFieldModel>();
+
+		[Route("api/query_list")]
+		[HttpGet]
+		public async Task<SelectFieldModel[]> GetSavedQueryList()
+		{
+			return savedQueries.ToArray();
+		}
+
+		[Route("api/query_list/save")]
+		[HttpPost]
+		public async Task<SelectFieldModel> SaveQuery([FromBody] SelectFieldModel query)
+		{
+			query.id = query.id == Guid.Empty ? Guid.NewGuid() : query.id;
+			savedQueries = savedQueries.Where(x => x.id != query.id).ToList();
+			savedQueries.Add(query);
+			return query;
+		}
+
+
+		public class Table
+		{
+			public string name;
+			public Field[] fields;
+		}
+
+		public class Field
+		{
+			public string name;
+			public string type;
+		}
+
 		[Route("api/tables")]
 		[HttpGet]
 		public async Task<Table[]> GetConnectionStrings([FromUri] string conn_string_id)
@@ -54,44 +93,6 @@ namespace WebSSMS.Controllers
 					.ToArray();
 		}
 
-		public class Table
-		{
-			public string name;
-			public Field[] fields;
-		}
-
-		public class Field
-		{
-			public string name;
-			public string type;
-		}
-
-
-
-		[Route("api/meta")]
-		[HttpGet]
-		public async Task<object> GetMeta()
-		{
-			var val = "";
-			var connStr = @"Data Source=HAL-9000\SQLEXPRESS;Initial Catalog=master;Persist Security Info=True;User ID=sa;Password=zasazz";
-			using (SqlConnection conn = new SqlConnection(connStr))
-			{
-				conn.StatisticsEnabled = true;
-				await conn.OpenAsync();
-				using (SqlCommand cmd = new SqlCommand("SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE'", conn))
-				{
-					using (SqlDataReader reader = await cmd.ExecuteReaderAsync())
-					{
-						while (await reader.ReadAsync())
-						{
-							val = reader["TABLE_NAME"].ToString();
-						}
-					}
-				}
-				var stats = conn.RetrieveStatistics();
-				return new { val, stats };
-			}
-		}
 
 		public class RunQueryParams {
 			public string conn_string_id { get; set; }

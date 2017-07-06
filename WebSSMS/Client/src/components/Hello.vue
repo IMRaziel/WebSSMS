@@ -4,14 +4,29 @@
         <split direction="|">
             <div>
                 <div>
-                    <button @click="run_query" :disabled="is_waiting_for_query">{{ is_running ? 'Cancel' : 'Run'}}</button>
-                    <button @click="run_slow_query" :disabled="is_waiting_for_query">{{ is_running ? 'Cancel' : 'Run Slowly'}}</button>
+                    <toast position="ne"></toast>
+                    
+                    <input type="test" placeholder="Query Name" v-model="query_name"></input>
+                    <button @click="saveQuery">Save</button>
+                    <button @click="saveNewQuery">Save as new</button>
+                    <button @click="show_saved_queries_list"> {{ sl.selectorVisible ? "Hide list" : "Load" }} </button>
+                    <v-select v-show="sl.selectorVisible" ref="queries_list_selector" placeholder="Queries list" :options="sl.queriesList" label="label" @search="load_queries_list" :on-change="select_query">
+                    </v-select>
+
+                </div>
+                <div>
+                    <button @click="run_query" :disabled="is_waiting_for_query || !$store.state.persistent.currentConnectionString">
+                        {{ is_running ? 'Cancel' : 'Run'}}
+                    </button>
+                    <button @click="run_slow_query" :disabled="is_waiting_for_query  || !$store.state.persistent.currentConnectionString">
+                        {{ is_running ? 'Cancel' : 'Run Slowly'}}
+                    </button>
                 </div>
                 <Editor :onMounted="on_editor_mounted" :onCodeChange="on_code_change"></Editor>
             </div>
             <div>
                 <div>
-                    <v-select :options="conn_strings" v-model="current_conn_string" label="label" :onChange="load_tables">
+                    <v-select placeholder="Select connection" :options="conn_strings" label="label" :onChange="load_tables">
     
                     </v-select>
                 </div>
@@ -57,6 +72,9 @@ import DatabasePanel from "./DatabasePanel.vue"
 import vSelect from "vue-select"
 import store from "@/Store"
 import { SqlQueryStatus} from "@/ISqlQuery"
+import  {mapState, mapActions} from "vuex"
+import { Toast } from 'vuex-toast'
+import 'vuex-toast/dist/vuex-toast.css'
 
 declare let monaco: any;
 
@@ -73,7 +91,8 @@ export default {
         DatabasePanel,
         vSelect,
         TablesTree,
-        ResultsDataTable
+        ResultsDataTable,
+        Toast
     },
     data() {
         return {
@@ -81,6 +100,35 @@ export default {
         }
     },
     methods: {
+        ...mapActions([
+            "saveQuery",
+            "saveNewQuery",
+        ]),        
+        select_query(val){
+            store.commit("setCurrentQuery", val)
+        },
+        load_queries_list: (s, loading) => {
+            loading(true)
+        },
+        show_saved_queries_list() {
+            let f: any = this.$refs["queries_list_selector"]
+            if(this.$store.state.save_load.selectorVisible){
+                // hide selector and clear loaded list of saved  queries
+                store.commit("endQueryListLoad", [])
+                return
+            }
+
+            f.loading = true
+            store
+                .dispatch('loadQueriesList')
+                .then(_ => {
+                    f.open = true
+                    f.loading = false
+                })
+        },
+        queries_list: () => [],
+        save_query: () => [],
+        
         is_cancelled: query => query.QueryStatus == SqlQueryStatus.Cancelled,
         is_waiting: query => query.QueryStatus == SqlQueryStatus.Running,
         load_tables(val) {
@@ -125,10 +173,14 @@ export default {
         }
     },
     computed: {
-        conn_strings: _ => store.state.connectionStrings,
-        is_running: _ => store.state.queryResults.isRunningQueries,
-        current_conn_string: _ => store.state.persistent.currentConnectionString,
-        is_waiting_for_query: _ => store.state.queryResults.pre.isWaitingForQuery,
+        ...mapState<typeof store.state>({
+            sl: s => s.save_load,
+            conn_strings: s => s.connectionStrings,
+            is_running: s => s.queryResults.isRunningQueries,
+            current_conn_string: s => s.persistent.currentConnectionString,
+            is_waiting_for_query: s => s.queryResults.pre.isWaitingForQuery,
+        }),
+
         results: _ => store.state.queryResults.queries,
         result_height: _ => {
             let percents = (100 / (Object.getOwnPropertyNames(store.state.queryResults.queries).length - 1)) + "%"
@@ -136,6 +188,14 @@ export default {
         },
         query_start_error(){
             return this.$store.state.queryResults.pre.error;
+        },
+        query_name: {
+            get() {
+                return store.state.save_load.currentName
+            },
+            set(value) {
+                this.$store.commit('updateQueryName', value)
+            }
         }
     },
     mounted() {

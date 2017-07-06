@@ -28,7 +28,8 @@
     "vue-scroll": "^2.0.3",
     "vue-select": "^2.2.0",
     "vue-slider-component": "^2.3.3",
-    "vuex": "^2.3.1"
+    "vuex": "^2.3.1",
+    "vuex-toast": "^0.1.1"
   },
   "devDependencies": {
     "@types/mocha": "^2.2.33",
