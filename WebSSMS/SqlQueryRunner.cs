@@ -104,16 +104,14 @@ namespace WebSSMS
 				}).ToArray();
 
 
-				var i = 0;
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 				// should run in background. no need for await here
 				Task.Run(async () =>
 				{
 					try
 					{
-						for (; i < result.queries.Count(); i++)
+						foreach (var query in result.queries)
 						{
-							var query = result.queries[i];
 							SqlDataReader reader = null;
 							try
 							{
@@ -137,14 +135,12 @@ namespace WebSSMS
 							{
 								reader?.Close();
 							}
-							var qq = 2;
 						}
 					}
 					finally
 					{
 						conn.Close();
 					}
-					var q = 2;
 				});
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 			}
