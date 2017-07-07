@@ -34,6 +34,8 @@ export default{
     let self = this;
     this.$store.watch(state => state.editor._loadedCode, (newVal, oldVal) => {
       debugger
+      if(oldVal == newVal) return
+
       let editor: any = self.$refs["editor"]
       editor.editor.setValue(newVal)
     })

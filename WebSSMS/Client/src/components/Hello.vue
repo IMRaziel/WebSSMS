@@ -40,12 +40,18 @@
                 </span>
                 <div v-else :key="'results' + i" v-for="(query, id, i) in results" class="result-container" :style="{height: result_height}">
                     <div class="result-stats">
-                        <div class="query-text">
+                        <div class="query-text" :title="query.SqlText">
                             {{ query.SqlText}}
                         </div>
-                        <div>
-                            Execution time (ms):
-                            <b v-if="query.Stats">{{ query.Stats.ExecutionTime}}</b>
+                        <div :title="JSON.stringify(query.Stats)">
+                            <span>
+                                Execution time (ms):
+                                <b v-if="query.Stats">{{ query.Stats.ExecutionTime}}</b>
+                            </span>
+                            <span>
+                                Selected Rows:
+                                <b v-if="query.Stats">{{ query.Stats.SelectRows}}</b>
+                            </span>
                         </div>
                     </div>
                     <div v-if="query.Error"> {{ query.Error }}  </div>

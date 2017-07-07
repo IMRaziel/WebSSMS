@@ -66,21 +66,24 @@ namespace WebSSMS.Controllers
 		{
 			public string name;
 			public Field[] fields;
+
+			public class Field
+			{
+				public string name;
+				public string type;
+			}
 		}
 
-		public class Field
-		{
-			public string name;
-			public string type;
-		}
+
 
 		[Route("api/tables")]
 		[HttpGet]
 		public async Task<Table[]> GetConnectionStrings([FromUri] string conn_string_id)
 		{
 			var query = @"
-					SELECT TABLE_SCHEMA + '.' + TABLE_NAME as table_name, COLUMN_NAME as name, DATA_TYPE as type
+					SELECT '['  +TABLE_CATALOG + '].['  + TABLE_SCHEMA + '].[' + TABLE_NAME + ']' as table_name, '[' + COLUMN_NAME + ']' as name, DATA_TYPE as type
 					FROM INFORMATION_SCHEMA.COLUMNS
+					ORDER BY table_name
 			";
 			var cs = ConnectionStringsProvider.GetById(conn_string_id).value;
 			return (await Utils.GetDictsFromQuery(query, cs))
@@ -88,7 +91,7 @@ namespace WebSSMS.Controllers
 					.Select(x => new Table
 					{
 						name = x.Key,
-						fields = x.Select(f => f.ToObject<Field>()).ToArray()
+						fields = x.Select(f => f.ToObject<Table.Field>()).ToArray()
 					})
 					.ToArray();
 		}
