@@ -44,6 +44,9 @@
                             {{ query.SqlText}}
                         </div>
                         <div :title="JSON.stringify(query.Stats)">
+                            <a :href="URL_ROOT + '/api/query_runner/download_as_csv?query_id=' + query.id + '&name=' + (query_name ? query_name : 'query_result') + '.csv'" download>
+                                Download as CSV
+                            </a>
                             <span>
                                 Execution time (ms):
                                 <b v-if="query.Stats">{{ query.Stats.ExecutionTime}}</b>
@@ -68,7 +71,7 @@
 
 <script lang="ts">
 import Vue, { ComponentOptions } from "vue";
-import { Http } from "../Utils";
+import { Http, URL_ROOT } from "../Utils";
 import $ from "jquery";
 import Split from "./SplitPanel.vue"
 import TablesTree from "./TablesTree.vue"
@@ -77,7 +80,7 @@ import ResultsDataTable from "./ResultsDataTable.vue"
 import DatabasePanel from "./DatabasePanel.vue"
 import vSelect from "vue-select"
 import store from "@/Store"
-import { SqlQueryStatus} from "@/ISqlQuery"
+import { SqlQueryStatus, ISqlQuery} from "@/ISqlQuery"
 import  {mapState, mapActions} from "vuex"
 import { Toast } from 'vuex-toast'
 import 'vuex-toast/dist/vuex-toast.css'
@@ -102,7 +105,7 @@ export default {
     },
     data() {
         return {
-
+            URL_ROOT
         }
     },
     methods: {

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Web;
+using System.Runtime.Caching;
 using Microsoft.SqlServer.Management.Common;
 using Microsoft.SqlServer.Management.Smo;
 using Microsoft.SqlServer.TransactSql.ScriptDom;
@@ -13,6 +13,7 @@ namespace WebSSMS
 {
 	static public class SqlQueryRunner
 	{
+		static ObjectCache FinishedQueries = MemoryCache.Default;
 		private static Dictionary<Guid, SqlQuery> Queries = new Dictionary<Guid, SqlQuery>();
 
 		public class RunQueryResults
@@ -55,6 +56,10 @@ namespace WebSSMS
 			return query;
 		}
 
+		public static SqlQuery GetFinishedSqlQueryResult(string id) {
+			return FinishedQueries.Get(id) as SqlQuery;
+		}
+
 		public static async Task<RunQueryResults> RunQuery(ConnectionStringsProvider.ConnectionString connString, string queryText, bool slow = false)
 		{
 			var result = new RunQueryResults();
@@ -89,6 +94,12 @@ namespace WebSSMS
 						data = new List<Dictionary<string, object>>()
 					};
 					Queries[id] = query;
+
+					// store in cache for 10 minutes in case someone wantes to download results
+					var p = new CacheItemPolicy();
+					p.AbsoluteExpiration = DateTimeOffset.Now.AddMinutes(10);
+					FinishedQueries.Add(new CacheItem(query.id.ToString(), query), p);
+
 					return query;
 				}).ToArray();
 
@@ -112,7 +123,7 @@ namespace WebSSMS
 									await Task.Delay(10000);
 								}
 								reader = await query.command.ExecuteReaderAsync();
-								query.data = Utils.GetDictsFromQuery(reader);
+								query.data = Utils.GetDictsFromQuery(reader).ToList();
 								query.Stats = conn.RetrieveStatistics();
 								conn.ResetStatistics();
 								query.QueryStatus = SqlQuery.Status.Finished;

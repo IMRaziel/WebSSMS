@@ -1,6 +1,6 @@
 import $ from "jquery";
 
-const URL_ROOT = "http://localhost:63317"
+export const URL_ROOT = "http://localhost:63317"
 
 export const Http = {
   async get(url: String){

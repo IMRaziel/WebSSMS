@@ -274,6 +274,9 @@ export default new Vuex.Store({
         return
       }
       
+      // reset queries list, so it will load with new changes when requested by user
+      commit("endQueryListLoad", [])
+
       commit("startQuerySave")
       Http.post("/api/query_list/save", {
                 value: state.editor.code,
