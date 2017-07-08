@@ -22,7 +22,7 @@
                         {{ is_running ? 'Cancel' : 'Run Slowly'}}
                     </button>
                 </div>
-                <Editor :onMounted="on_editor_mounted" :onCodeChange="on_code_change"></Editor>
+                <Editor :onMounted="on_editor_mounted" :onCodeChange="on_code_change" style="height: calc(100% - 42px)"></Editor>
             </div>
             <div>
                 <div>
