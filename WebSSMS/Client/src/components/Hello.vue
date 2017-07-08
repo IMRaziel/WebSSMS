@@ -245,5 +245,6 @@ export default {
 .query-text {
     text-overflow: ellipsis;
     white-space: nowrap;
+    overflow: hidden;
 }
 </style>

@@ -1,7 +1,7 @@
 <template>
   <div style="height: 100%; overflow: hidden" @wheel="on_scroll">
     <div class="container" style="display: inline;">
-      <div style=" overflow: hidden; display: inline-block; background-color: gray; width:calc(100% - 20px); height: calc(100% - 60px)" @scroll="on_scroll">
+      <div style=" overflow: hidden; display: inline-block; width:calc(100% - 20px); height: calc(100% - 60px)" @scroll="on_scroll">
         <div style="height: 100%; float: left;">
           <table class="rownums-table" cellspacing=0>
               <thead>
@@ -21,7 +21,7 @@
           </table>
         </div>
         <div class="table-container">
-          <table class="data-table" :style="{left: -10 * scrollx + 'px'}" ref="table" cellspacing="0">
+          <table class="data-table" :style="{left: data_table_scroll_indent}" ref="table" cellspacing="0">
             <thead>
               <tr >
                 <!--<td class="headcol">1</td>-->
@@ -146,8 +146,8 @@ export default {
         all.length / 100.0 * (100 - this.scrolly),
         all.length - 1
       ))
-      
-      var nums = Array.apply(null, Array(buffer)).map((_, i) => start + i + 1)
+      let n = Math.min(all.length - start, buffer)
+      var nums = Array.apply(null, Array(n)).map((_, i) => start + i + 1)
       return nums
     },
     visible_rows() {
@@ -161,6 +161,10 @@ export default {
       var visible = all.slice(start, start + buffer)
       return visible
     },
+    data_table_scroll_indent(){
+       return -200 * this.columns.length * this.scrollx / 100 + 'px'
+
+    }
   },
   mounted(){
     this.$scrollFixTask = setInterval(() => {
@@ -249,7 +253,7 @@ export default {
 }
 
 tbody tr:nth-child(odd) {
-  background-color: #ccc;
+  background-color: lightblue;
 }
 
 th, td {

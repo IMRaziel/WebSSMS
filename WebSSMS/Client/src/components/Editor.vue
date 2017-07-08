@@ -1,5 +1,5 @@
 <template>
-  <MonacoEditor ref="editor" language="sql" @codeChange="onCodeChange" @mounted="onMounted" 
+  <MonacoEditor ref="editor" language="sql" theme="vs" @codeChange="onCodeChange" @mounted="onMounted" 
             :changeThrottle="250" :options="{automaticLayout: true}" :code="test_code"
   >
   </MonacoEditor>
