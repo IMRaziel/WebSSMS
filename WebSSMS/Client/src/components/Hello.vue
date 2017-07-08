@@ -38,7 +38,7 @@
                 <span v-if="query_start_error">
                     {{ query_start_error }}
                 </span>
-                <div v-else :key="'results' + i" v-for="(query, id, i) in results" class="result-container" :style="{height: result_height}">
+                <result-panel v-else :key="'results' + i" v-for="(query, id, i) in results" class="result-container" :style="{height: result_height}">
                     <div class="result-stats">
                         <div class="query-text" :title="query.SqlText">
                             {{ query.SqlText}}
@@ -61,7 +61,7 @@
                     <div v-if="is_waiting(query)"> Waiting  </div>
                     <div v-if="is_cancelled(query)"> Cancelled  </div>
                     <ResultsDataTable v-if="query.data && query.data.length" :uid="id + '-table-'" :data="query.data"></ResultsDataTable>
-                </div>
+                </result-panel>
     
             </Split>
     
@@ -71,7 +71,7 @@
 
 <script lang="ts">
 import Vue, { ComponentOptions } from "vue";
-import { Http, URL_ROOT } from "../Utils";
+import { Http, URL_ROOT, debounce } from "../Utils";
 import $ from "jquery";
 import Split from "./SplitPanel.vue"
 import TablesTree from "./TablesTree.vue"
@@ -91,7 +91,16 @@ interface C extends Vue {
     editor: any
     is_running:boolean
     run_query: Function
+    results: ISqlQuery[]
 }
+
+let ResultPanel = Vue.component("result-panel", {
+    template: `
+    <div >
+      <slot></slot>
+    </div>
+    `
+});
 
 export default {
     components: {
@@ -101,7 +110,8 @@ export default {
         vSelect,
         TablesTree,
         ResultsDataTable,
-        Toast
+        Toast,
+        ResultPanel
     },
     data() {
         return {
@@ -150,12 +160,11 @@ export default {
             (<any>window).ed = editor
 
             this.editor = editor;
-            let updatePosition = _ => {
-                store.commit("setEditorCursorPosition", editor.getPosition())
+            let updatePosition = debounce(_ => {
                 let selection = editor.getSelection()
                 let selectedText = editor.getModel().getValueInRange(selection)
-                store.commit("setEditorSelectedText", selectedText)
-            }
+                store.commit("editQueryText", {pos: editor.getPosition(), text: selectedText})
+            }, 500)
             editor.onMouseUp(updatePosition)
             editor.onKeyUp(updatePosition)
         },
@@ -188,11 +197,11 @@ export default {
             is_running: s => s.queryResults.isRunningQueries,
             current_conn_string: s => s.persistent.currentConnectionString,
             is_waiting_for_query: s => s.queryResults.pre.isWaitingForQuery,
+            results: s => s.queryResults.queries,
         }),
 
-        results: _ => store.state.queryResults.queries,
-        result_height: _ => {
-            let percents = (100 / (Object.getOwnPropertyNames(store.state.queryResults.queries).length - 1)) + "%"
+        result_height() {
+            let percents = (100 / (Object.getOwnPropertyNames(this.results).length - 1)) + "%"
             return `calc(${percents} - 12px)`
         },
         query_start_error(){
@@ -203,7 +212,13 @@ export default {
                 return store.state.save_load.currentName
             },
             set(value) {
-                this.$store.commit('updateQueryName', value)
+                let self = this as any
+                if(!self.$query_name_setter){
+                    self.$query_name_setter = debounce(v =>{
+                        self.$store.commit('updateQueryName', v)
+                    }, 500)
+                }
+                self.$query_name_setter(value);
             }
         }
     },

@@ -4,11 +4,17 @@ declare namespace window {
   let LOADER_CALLBACKS: any
   let document: any
   let require: any
-}
+  let MonacoEnvironment: any
+} 
 
 export default {
   /* For now: default to cdn. */
-  load(srcPath = 'https://as.alipayobjects.com/g/cicada/monaco-editor-mirror/0.6.1/min', callback) {
+  load(srcPath = 'https://microsoft.github.io/monaco-editor/node_modules/monaco-editor/min/', callback) {
+    window.MonacoEnvironment = {
+      getWorkerUrl: function(workerId, label) {
+        return '/static/js/monaco-editor-worker-loader-proxy.js';
+      }
+    };
     if (window.monaco) {
       callback();
       return;

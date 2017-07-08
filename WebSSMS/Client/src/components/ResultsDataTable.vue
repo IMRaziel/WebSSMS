@@ -2,26 +2,28 @@
   <div style="height: 100%; overflow: hidden" @wheel="on_scroll">
     <div class="container" style="display: inline;">
       <div style=" overflow: hidden; display: inline-block; background-color: gray; width:calc(100% - 20px); height: calc(100% - 60px)" @scroll="on_scroll">
-        <table ref="table" class="display" cellspacing="0" :style="{ 'margin-left': -10 * scrollx + 'px'}">
-          <thead>
-            <tr class="row">
-              <th :key="'col'-key" v-for="key in columns">
-                <div class="cell">
-                  {{ key }}
-                </div>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(row, i) in visible_rows" class="row">
-              <td v-for="f in row" class="cell-container">
-                <div class="cell">
-                  {{ f }}
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div :style="{ 'margin-left': -10 * scrollx + 'px', height: '100%', width: '100%'}">
+          <table ref="table" class="display" cellspacing="0">
+            <thead>
+              <tr >
+                <th :key="'col'-key" v-for="key in columns">
+                  <!--<div class="cell">-->
+                    {{ key }}
+                  <!--</div>-->
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr :key="uid + i" v-for="(row, i) in visible_rows" >
+                <td :key="(uid + i) + j" v-for="(f, j) in row" >
+                  <!--<div class="cell">-->
+                    {{ f }}
+                  <!--</div>-->
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
       <div style="display: inline-block; height: calc(100% - 60px); width: 20px; float: right; margin-left: 0px">
         <vue-slider ref="qwe"
@@ -91,7 +93,7 @@ export default {
       }
       if(!e.deltaY) return;
       let s = e.deltaY
-      let dy = s > 50 ? s : s * 25
+      let dy = Math.abs(s) > 50 ? s : s * 25
       console.log(e,s)
       
       var y = this.$scrolly - dy / this.rows.length
@@ -114,35 +116,13 @@ export default {
     visible_rows() {
       let buffer = 50;
       let all = this.rows
-      let start = Math.min(
+      let start = Math.min( 
         all.length / 100.0 * (100 - this.scrolly),
         all.length - 1
       )
       
       var visible = all.slice(start, start + buffer)
       return visible
-    }
-  },
-  watch: {
-    rows(val) {
-      if (val && val.length) {
-        Vue.nextTick(() =>
-          setTimeout(_ => {
-            let parent = (this.$refs["table"] as Element).parentNode as HTMLElement
-
-            // $(this.$refs["table"]).DataTable({
-            //   "scrollY": parent ? parent.clientHeight : 0,
-            //   "scrollX": true,
-
-            //   "searching": false,
-            //   "paging": false,
-            //   "ordering": false,
-            //   "info": false,
-            //   "fixedColumns": true,
-            // } as any)
-          }, 100)
-        )
-      }
     }
   },
   mounted(){
@@ -154,6 +134,11 @@ export default {
     clearInterval(this.$scrollFixTask)
   },
   updated() {
+  },
+  watch:{
+    scrolly() {
+      this.$scrolly = this.scrolly
+    }
   }
 } as ComponentOptions<C>
 </script>

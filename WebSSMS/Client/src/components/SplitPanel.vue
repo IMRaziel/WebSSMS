@@ -37,7 +37,6 @@ export default {
   },
   methods: {
     activateSplit(){
-      // debugger;
       if (this.$children.length * 2 - 1 == this.$el.children.length) {
         return this.$split;
       }
@@ -51,7 +50,8 @@ export default {
       if (!this.$el.children.length) return
  
       children.forEach(el => {
-        el.className += "content split split-" + (this.direction == "--" ? "vertical" : "horizontal")
+        let c = "content split split-" + (this.direction == "--" ? "vertical" : "horizontal")
+        if(el.className.indexOf(c)==-1) el.className += c
       });
 
       console.log(children)

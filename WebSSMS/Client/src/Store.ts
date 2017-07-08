@@ -128,11 +128,17 @@ export default new Vuex.Store({
       state.editor.code = val;
     },
     setEditorCursorPosition(state, pos) {
-      Vue.set(state.editor, "cursorPosition", pos)
+      state.editor.cursorPosition.column = pos.column
+      state.editor.cursorPosition.lineNumber = pos.lineNumber
     },
     setEditorSelectedText(state, text) {
       state.editor.selection = text
     },
+    editQueryText(state, {pos, text}){
+      state.editor.cursorPosition.column = pos.column
+      state.editor.cursorPosition.lineNumber = pos.lineNumber
+      state.editor.selection = text
+    }, 
 
     // running queries
     startQuery(state){
