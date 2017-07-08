@@ -38,29 +38,33 @@
                 <span v-if="query_start_error" class="error centered">
                     {{ query_start_error }}
                 </span>
-                <result-panel v-else :key="'results' + i" v-for="(query, id, i) in results" class="result-container" :style="{height: result_height}">
-                    <div class="result-stats">
-                        <div class="query-text" :title="query.SqlText">
-                            {{ query.SqlText}}
+                <result-panel v-else :key="'results-group' + i" v-for="(group, i) in result_groups" class="result-container" :style="{height: result_group_height}">
+                    <result-panel :key="'results' + i" v-for="(query, i) in group" :style="{height: result_height(group, i)}">
+                        <div class="result-stats">
+                            <div class="query-text" :title="query.SqlText">
+                                {{ query.SqlText}}
+                            </div>
+                            <div :title="JSON.stringify(query.Stats)">
+                                <a 
+                                    v-if="query.SqlText.startsWith('SELECT')" 
+                                    :href="URL_ROOT + '/api/query_runner/download_as_csv?query_id=' + query.id + '&name=' + (query_name ? query_name : 'query_result') + '.csv'" download>
+                                    Download as CSV
+                                </a>
+                                <span>
+                                    Execution time (ms):
+                                    <b v-if="query.Stats">{{ query.Stats.ExecutionTime}}</b>
+                                </span>
+                                <span>
+                                    Selected Rows:
+                                    <b v-if="query.Stats">{{ query.Stats.SelectRows}}</b>
+                                </span>
+                            </div>
                         </div>
-                        <div :title="JSON.stringify(query.Stats)">
-                            <a :href="URL_ROOT + '/api/query_runner/download_as_csv?query_id=' + query.id + '&name=' + (query_name ? query_name : 'query_result') + '.csv'" download>
-                                Download as CSV
-                            </a>
-                            <span>
-                                Execution time (ms):
-                                <b v-if="query.Stats">{{ query.Stats.ExecutionTime}}</b>
-                            </span>
-                            <span>
-                                Selected Rows:
-                                <b v-if="query.Stats">{{ query.Stats.SelectRows}}</b>
-                            </span>
-                        </div>
-                    </div>
-                    <div v-if="query.Error" class="error centered"> {{ query.Error }}  </div>
-                    <div v-if="is_waiting(query)" class="centered"> Waiting  </div>
-                    <div v-if="is_cancelled(query)" class="error centered"> Cancelled  </div>
-                    <ResultsDataTable v-if="query.data && query.data.length" :uid="id + '-table-'" :data="query.data"></ResultsDataTable>
+                        <div v-if="query.Error" class="error centered"> {{ query.Error }}  </div>
+                        <div v-if="is_waiting(query)" class="centered"> Waiting  </div>
+                        <div v-if="is_cancelled(query)" class="error centered"> Cancelled  </div>
+                        <ResultsDataTable v-if="query.data && query.data.length" :uid="id + '-table-'" :data="query.data"></ResultsDataTable>
+                    </result-panel>
                 </result-panel>
     
             </Split>
@@ -91,12 +95,13 @@ interface C extends Vue {
     editor: any
     is_running:boolean
     run_query: Function
-    results: ISqlQuery[]
+    results: ISqlQuery[],
+    result_groups: ISqlQuery[][],
 }
 
 let ResultPanel = Vue.component("result-panel", {
     template: `
-    <div >
+    <div style="border: solid 1px; padding: 4px">
       <slot></slot>
     </div>
     `
@@ -189,7 +194,16 @@ export default {
         },
         cancel_query(id) {
             store.dispatch('cancelQuery', id)
-        }
+        },
+        result_height(group: ISqlQuery[], i: number) {
+            let h = 60
+            let is_select = i == group.length - 1 
+            if(is_select){
+                return `calc(100% - ${(group.length - 1) * (h + 12)}px)`
+            }   else {
+                return h + "px" 
+            }
+        },
     },
     computed: {
         ...mapState<typeof store.state>({
@@ -199,10 +213,28 @@ export default {
             current_conn_string: s => s.persistent.currentConnectionString,
             is_waiting_for_query: s => s.queryResults.pre.isWaitingForQuery,
             results: s => s.queryResults.queries,
+            result_groups: s => {
+                var groups: ISqlQuery[][] = [];
+                var currGroup:ISqlQuery[] = []
+                var qs = s.queryResults.queries
+                for (var key in qs) {
+                    if (qs.hasOwnProperty(key)) {
+                        var q = qs[key]
+                        currGroup.push(q)
+                        if(q.SqlText.startsWith("SELECT")){
+                            groups.push(currGroup)
+                            currGroup = []
+                        }   
+                    }
+                }
+                if(currGroup.length){
+                    groups.push(currGroup)
+                }
+                return groups
+            },
         }),
-
-        result_height() {
-            let percents = (100 / (Object.getOwnPropertyNames(this.results).length - 1)) + "%"
+        result_group_height() {
+            let percents = (100 / (Object.getOwnPropertyNames(this.result_groups).length - 1)) + "%"
             return `calc(${percents} - 12px)`
         },
         query_start_error(){
