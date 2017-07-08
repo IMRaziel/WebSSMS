@@ -2,41 +2,49 @@
   <div style="height: 100%; overflow: hidden" @wheel="on_scroll">
     <div class="container" style="display: inline;">
       <div style=" overflow: hidden; display: inline-block; background-color: gray; width:calc(100% - 20px); height: calc(100% - 60px)" @scroll="on_scroll">
-        <div :style="{height: '100%', float: 'left'}">
-          <table style="width: 40px;">
+        <div style="height: 100%; float: left;">
+          <table class="rownums-table" cellspacing=0>
               <thead>
-                <tr><th>#</th></tr>
-                <tr :key="'col'-key" v-for="key in row_nums">
-                  <th > {{ key }} </th>
+                <tr>
+                  <td >
+                    <div class="rownum-cell">#</div>
+                  </td>
                 </tr>
               </thead>
+              <tbody>
+                <tr :key="'col'-key" v-for="key in row_nums">
+                  <td > 
+                    <div class="rownum-cell">{{ key }} </div>
+                  </td>
+                </tr>
+              </tbody>
           </table>
         </div>
-        <div :style="{  height: '100%', width: 'calc(100% - 50px)', float: 'left', overflow: 'hidden'}">
-          <table :style="{ position: 'relative', left: -10 * scrollx + 'px'}" ref="table" class="display" cellspacing="0">
+        <div class="table-container">
+          <table class="data-table" :style="{left: -10 * scrollx + 'px'}" ref="table" cellspacing="0">
             <thead>
               <tr >
                 <!--<td class="headcol">1</td>-->
                 <th :key="'col'-key" v-for="key in columns">
-                  <!--<div class="cell">-->
+                  <div class="cell">
                     {{ key }}
-                  <!--</div>-->
+                  </div>
                 </th>
               </tr>
             </thead>
             <tbody>
               <tr :key="uid + i" v-for="(row, i) in visible_rows" >
                 <td :key="(uid + i) + j" v-for="(f, j) in row" >
-                  <!--<div class="cell">-->
+                  <div class="cell" :title="f">
                     {{ f }}
-                  <!--</div>-->
+                  </div>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
       </div>
-      <div style="display: inline-block; height: calc(100% - 60px); width: 20px; float: right; margin-left: 0px">
+      <div class="scrollx-container">
         <vue-slider ref="qwe"
               height="100%" 
               :width="10"
@@ -172,7 +180,7 @@ export default {
 } as ComponentOptions<C>
 </script>
 
-<style >
+<style scoped>
 /*table {
   height: 100%
 }*/
@@ -189,12 +197,6 @@ export default {
   text-overflow: ellipsis;
 }
 
-.cell {
-  padding: 0px;
-  margin: 0px;
-  width: 100px;
-}
-
 .header-cell {
   width: 98px;
 }
@@ -203,8 +205,56 @@ export default {
   border-spacing: 2px;
 }*/
 
+.cell {
+  padding: 0px;
+  margin: 0px;
+  height: 20px;
+  width: 200px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.rownums-table {
+  width: 40px; 
+}
+
+
+.rownum-cell {
+  padding: 0px;
+  margin: 0px;
+  height: 20px;
+  width: 40px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.table-container {
+  height: 100%;
+  float: left;
+  overflow: hidden;
+  width: calc(100% - 50px)
+}
+
+.data-table {
+  position: relative;
+}
+
+.scrollx-container {
+  display: inline-block;
+  height: calc(100% - 60px); 
+  width: 20px; 
+  float: right; 
+  margin-left: 0px;
+}
+
 tbody tr:nth-child(odd) {
   background-color: #ccc;
+}
+
+th, td {
+    border: 1px solid black;
+    width: 100px;
 }
 
 .vue-slider-vertical .vue-slider {
