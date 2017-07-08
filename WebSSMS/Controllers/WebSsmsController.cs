@@ -138,13 +138,13 @@ namespace WebSSMS.Controllers
 			
 			var query = SqlQueryRunner.GetFinishedSqlQueryResult(query_id);
 			var sb = new StringBuilder();
-			sb.AppendLine(String.Join(",", query.data[0].Keys));
+			sb.AppendLine(String.Join(",", query.Columns));
 
 			foreach(var row in query.data)
 			{
 				sb.AppendLine(String.Join(
 					",",
-					row.Values.Select(JsonConvert.SerializeObject)
+					row.Select(JsonConvert.SerializeObject)
 				));
 			}
 

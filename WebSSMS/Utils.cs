@@ -51,6 +51,15 @@ namespace WebSSMS
 		}
 
 
+		public static IEnumerable<object[]> GetArraysFromQuery(SqlDataReader reader)
+		{
+			while (reader.Read())
+			{
+				var row = new object[reader.FieldCount];
+				reader.GetValues(row);
+				yield return row;
+			}
+		}
 
 		public static T ToObject<T>(this IDictionary<string, object> source) where T : class, new()
 		{

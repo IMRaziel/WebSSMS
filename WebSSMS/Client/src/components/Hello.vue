@@ -63,7 +63,7 @@
                         <div v-if="query.Error" class="error centered"> {{ query.Error }}  </div>
                         <div v-if="is_waiting(query)" class="centered"> Waiting  </div>
                         <div v-if="is_cancelled(query)" class="error centered"> Cancelled  </div>
-                        <ResultsDataTable v-if="query.data && query.data.length" :uid="id + '-table-'" :data="query.data"></ResultsDataTable>
+                        <ResultsDataTable v-if="query.data && query.data.length" :uid="id + '-table-'" :columns="query.Columns" :rows="query.data"></ResultsDataTable>
                     </result-panel>
                 </result-panel>
     

@@ -24,7 +24,8 @@ namespace WebSSMS
 		public string SqlText;
 		public Status QueryStatus;
 		public IDictionary Stats;
-		public List<Dictionary<string, object>> data;
+		public object[][] data;
+		public string[] Columns;
 		public string Error;
 		public SqlQuery NextQuery;
 

@@ -14,7 +14,8 @@ export interface ISqlQuery {
 		SqlText: string,
 		QueryStatus: SqlQueryStatus,
 		Stats: {[k: string]: any}
-		data: {}[];
+		data: {}[][]
+		Columns: string[]
 		Error: string
 		NextQuery: ISqlQuery
 }

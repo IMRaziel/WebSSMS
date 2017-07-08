@@ -95,7 +95,7 @@ namespace WebSSMS
 						SqlText = x,
 						connection = conn,
 						command = new SqlCommand(x, conn),
-						data = new List<Dictionary<string, object>>()
+						data = new object[0][]
 					};
 					Queries[id] = query;
 
@@ -125,7 +125,8 @@ namespace WebSSMS
 									await Task.Delay(10000);
 								}
 								reader = await query.command.ExecuteReaderAsync();
-								query.data = Utils.GetDictsFromQuery(reader).ToList();
+								query.Columns = Enumerable.Range(0, reader.FieldCount).Select(reader.GetName).ToArray();
+								query.data = Utils.GetArraysFromQuery(reader).ToArray();
 								query.Stats = conn.RetrieveStatistics();
 								conn.ResetStatistics();
 								query.QueryStatus = SqlQuery.Status.Finished;

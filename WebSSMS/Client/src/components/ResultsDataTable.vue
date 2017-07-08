@@ -82,8 +82,7 @@ import vueSlider from 'vue-slider-component';
 Vue.use(VueScroll)
 
 interface C extends Vue {
-  data: {}[]
-  rows: {}[],
+  rows: {}[][],
   columns: string[],
   scrolly: number
   scrollx: number
@@ -93,7 +92,7 @@ interface C extends Vue {
 }
 
 export default {
-  props: ["uid", "data"],
+  props: ["uid", "rows", "columns"],
   components: {
     vueSlider
   },
@@ -131,14 +130,6 @@ export default {
     }
   },
   computed: {
-    columns() {
-      return this.data.length ? Object.getOwnPropertyNames(this.data[0]).filter(x => x != "__ob__") : []
-    },
-    rows() {
-      let all = (this.data || [])
-        .map(obj => this.columns.map(c => obj[c]))
-      return all;
-    },
     row_nums(){
       let buffer = 50;
       let all = this.rows
