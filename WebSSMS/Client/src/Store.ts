@@ -156,6 +156,8 @@ export default new Vuex.Store({
     },
     finalizeQueryResults(state, queryResult: IRunQueryResults){
       state.queryResults.isRunningQueries = false
+      state.queryResults.pre.isWaitingForQuery = false
+      
       if(queryResult && queryResult.error){
         state.queryResults.pre.error = queryResult.error
       }

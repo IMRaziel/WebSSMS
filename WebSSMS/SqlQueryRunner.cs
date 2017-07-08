@@ -8,13 +8,14 @@ using Microsoft.SqlServer.Management.Common;
 using Microsoft.SqlServer.Management.Smo;
 using Microsoft.SqlServer.TransactSql.ScriptDom;
 using System.IO;
+using System.Collections.Concurrent;
 
 namespace WebSSMS
 {
 	static public class SqlQueryRunner
 	{
 		static ObjectCache FinishedQueries = MemoryCache.Default;
-		private static Dictionary<Guid, SqlQuery> Queries = new Dictionary<Guid, SqlQuery>();
+		private static ConcurrentDictionary<Guid, SqlQuery> Queries = new ConcurrentDictionary<Guid, SqlQuery>();
 
 		public class RunQueryResults
 		{
@@ -32,7 +33,8 @@ namespace WebSSMS
 				if (!Queries.ContainsKey(queryId)) return new SqlQuery();
 				await Task.Delay(250);
 			}
-			Queries.Remove(query.id);
+			SqlQuery tmp;
+			Queries.TryRemove(query.id, out tmp);
 
 			return query;
 		}
@@ -52,7 +54,9 @@ namespace WebSSMS
 			catch { }
 
 			query.QueryStatus = SqlQuery.Status.Cancelled;
-			Queries.Remove(query.id);
+
+			SqlQuery tmp;
+			Queries.TryRemove(query.id, out tmp);
 			return query;
 		}
 
