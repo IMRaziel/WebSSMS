@@ -35,7 +35,7 @@
         </split>
         <div>
             <Split direction="--" is-dynamic>
-                <span v-if="query_start_error">
+                <span v-if="query_start_error" class="error centered">
                     {{ query_start_error }}
                 </span>
                 <result-panel v-else :key="'results' + i" v-for="(query, id, i) in results" class="result-container" :style="{height: result_height}">
@@ -57,9 +57,9 @@
                             </span>
                         </div>
                     </div>
-                    <div v-if="query.Error"> {{ query.Error }}  </div>
-                    <div v-if="is_waiting(query)"> Waiting  </div>
-                    <div v-if="is_cancelled(query)"> Cancelled  </div>
+                    <div v-if="query.Error" class="error centered"> {{ query.Error }}  </div>
+                    <div v-if="is_waiting(query)" class="centered"> Waiting  </div>
+                    <div v-if="is_cancelled(query)" class="error centered"> Cancelled  </div>
                     <ResultsDataTable v-if="query.data && query.data.length" :uid="id + '-table-'" :data="query.data"></ResultsDataTable>
                 </result-panel>
     
@@ -246,5 +246,17 @@ export default {
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
+}
+
+.error {
+    color: red;
+}
+
+.centered {
+    position: relative;
+    float: left;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 </style>
