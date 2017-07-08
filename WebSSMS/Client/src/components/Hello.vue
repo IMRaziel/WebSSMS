@@ -134,6 +134,7 @@ export default {
             if(this.$store.state.save_load.selectorVisible){
                 // hide selector and clear loaded list of saved  queries
                 store.commit("endQueryListLoad", [])
+                f.deselect()
                 return
             }
 

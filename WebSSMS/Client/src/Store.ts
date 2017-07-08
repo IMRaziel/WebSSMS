@@ -186,6 +186,7 @@ export default new Vuex.Store({
       state.save_load.currentId = q.id
       state.save_load.currentName = q.label
       state.editor._loadedCode = q.value
+      state.save_load.selectorVisible = false
     },
     endQuerySave(){
       state.save_load.isSaving = false
@@ -193,13 +194,16 @@ export default new Vuex.Store({
 
   },
   actions: {
-    getConnectionStrings({ commit }) {
+    getConnectionStrings({ commit, dispatch }) {
       Http.get("/api/conn_strings")
         .then(conn_strings => {
           commit('setConnStrings', conn_strings)
         })
+        .catch(e=> {
+            dispatch(ADD_TOAST_MESSAGE, { text: "Can't load connections list. Try reloading the page", type: "danger", dismissAfter: 10000000})
+        })
     },
-    loadTables({ commit, state }, conn_string_obj) {
+    loadTables({ commit, state, dispatch }, conn_string_obj) {
       commit('setCurrentConnString', conn_string_obj)
       if (state.persistent.currentConnectionString != null) {
         commit('setIsLoadingTables', true)
@@ -208,6 +212,10 @@ export default new Vuex.Store({
           .then(tables => {
             commit('setTables', tables)
             commit('setIsLoadingTables', false)
+          })
+          .catch(e=> {
+              dispatch(ADD_TOAST_MESSAGE, { text: "Can't load tables list. Try reloading the page", type: "danger", dismissAfter: 10000000})
+              commit('setCurrentConnString', null)
           })
       }
     },
@@ -224,14 +232,23 @@ export default new Vuex.Store({
           })
       })
     },
-    runQuery({ commit, state, getters }, slow) {
-      function getResults(id){
-        Http.get(`/api/query_runner/results?query_id=${id}`)
+    runQuery({ commit, state, getters, dispatch }, slow) {
+      function getResults(query){
+        Http.get(`/api/query_runner/results?query_id=${query.id}`)
           .then((q: ISqlQuery) => {
             commit("updateQueryResult", q)
             if (getters.allQueriesFinished) {
               commit("finalizeQueryResults")
             }
+          })
+          .catch(e=> {
+              dispatch(ADD_TOAST_MESSAGE, { text: "Unexpected error executing the query.", type: "danger"})
+              query.QueryStatus = SqlQueryStatus.Error
+              query.Error = "Unexpected error"
+              commit("updateQueryResult", query)
+              if (getters.allQueriesFinished) {
+                commit("finalizeQueryResults")
+              }
           })
       }
       commit("startQuery")
@@ -252,10 +269,17 @@ export default new Vuex.Store({
             queryResult.queries.forEach(query=> {
               commit("updateQueryResult", query)
               if (query.QueryStatus == SqlQueryStatus.Running){
-                getResults(query.id)
+                getResults(query)
               }
             })
           })
+          .catch(e=> {
+              dispatch(ADD_TOAST_MESSAGE, { text: "Unexpected error while starting the query", type: "danger", dismissAfter: 10000000})
+              commit("finalizeQueryResults", {
+                error: "Unexpected error while starting the query"
+              })
+          })
+
       }
     },
     loadQueriesList({commit, state, dispatch}){
@@ -267,6 +291,11 @@ export default new Vuex.Store({
           }
           commit("endQueryListLoad", q)
         })
+        .catch(e=> {
+            dispatch(ADD_TOAST_MESSAGE, { text: "Unexpected error while loading saved queries list", type: "danger", dismissAfter: 10000000})
+            commit("endQueryListLoad", [])
+        })
+        
     },
     loadQuery({ commit, state, dispatch }, q: ISelectModel) {
       commit("setCurrentQuery", q)
@@ -295,7 +324,11 @@ export default new Vuex.Store({
                 commit("setCurrentQuery", q)
                 commit("endQuerySave")
                 dispatch(ADD_TOAST_MESSAGE, { text: "Saved", type: "info" })
-              });
+              })
+              .catch(e=> {
+                dispatch(ADD_TOAST_MESSAGE, { text: "Unexpected error while saving a query", type: "danger", dismissAfter: 10000000})
+                commit("endQuerySave")
+              })
     },
   }
 }) 
